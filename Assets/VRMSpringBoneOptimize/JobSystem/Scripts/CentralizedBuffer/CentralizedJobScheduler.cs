@@ -116,6 +116,49 @@
             this.CreateBuffer();
         }
 
+        #endregion // Public Methods
+
+        // ----------------------------------------------------
+
+        #region // Private Methods
+
+        void ExecuteJobs()
+        {
+            if (this._springBoneJobData.Length <= 0) return;
+            
+            if (this._colliderHashMap.IsCreated)
+            {
+                this._colliderHashMap.Dispose();
+            }
+
+            // コライダーの更新
+            this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                this._colliderHashMapLength, Allocator.TempJob);
+            this._jobHandle = new UpdateColliderHashJob
+            {
+                GroupParams = this._colliderGroupJobData.GroupParams,
+                ColliderHashMap = this._colliderHashMap.ToConcurrent(),
+            }.Schedule(this._colliderGroupJobData.TransformAccessArray);
+
+            // 親の回転の取得
+            this._jobHandle = new UpdateParentRotationJob
+            {
+                ParentRotations = this._parentRotations,
+            }.Schedule(this._springBoneJobData.ParentTransformAccessArray, this._jobHandle);
+
+            // 物理演算
+            this._jobHandle = new LogicJob
+            {
+                ImmutableNodeParams = this._springBoneJobData.ImmutableNodeParams,
+                ParentRotations = this._parentRotations,
+                DeltaTime = Time.deltaTime,
+                ColliderHashMap = this._colliderHashMap,
+                VariableNodeParams = this._springBoneJobData.VariableNodeParams,
+            }.Schedule(this._springBoneJobData.TransformAccessArray, this._jobHandle);
+
+            JobHandle.ScheduleBatchedJobs();
+        }
+        
         void CreateBuffer(CentralizedBuffer[] initBuffers = null)
         {
             if (initBuffers != null)
@@ -156,47 +199,6 @@
             this._springBoneJobData = new SpringBoneJobData(this._allNodes);
             this._colliderGroupJobData = new ColliderGroupJobData(this._allColliderGroups);
             this._parentRotations = new NativeArray<quaternion>(this._allNodes.Count, Allocator.Persistent);
-        }
-
-        #endregion // Public Methods
-
-        // ----------------------------------------------------
-
-        #region // Private Methods
-
-        void ExecuteJobs()
-        {
-            if (this._colliderHashMap.IsCreated)
-            {
-                this._colliderHashMap.Dispose();
-            }
-
-            // コライダーの更新
-            this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                this._colliderHashMapLength, Allocator.TempJob);
-            this._jobHandle = new UpdateColliderHashJob
-            {
-                GroupParams = this._colliderGroupJobData.GroupParams,
-                ColliderHashMap = this._colliderHashMap.ToConcurrent(),
-            }.Schedule(this._colliderGroupJobData.TransformAccessArray);
-
-            // 親の回転の取得
-            this._jobHandle = new UpdateParentRotationJob
-            {
-                ParentRotations = this._parentRotations,
-            }.Schedule(this._springBoneJobData.ParentTransformAccessArray, this._jobHandle);
-
-            // 物理演算
-            this._jobHandle = new LogicJob
-            {
-                ImmutableNodeParams = this._springBoneJobData.ImmutableNodeParams,
-                ParentRotations = this._parentRotations,
-                DeltaTime = Time.deltaTime,
-                ColliderHashMap = this._colliderHashMap,
-                VariableNodeParams = this._springBoneJobData.VariableNodeParams,
-            }.Schedule(this._springBoneJobData.TransformAccessArray, this._jobHandle);
-
-            JobHandle.ScheduleBatchedJobs();
         }
 
         void IDisposable.Dispose()

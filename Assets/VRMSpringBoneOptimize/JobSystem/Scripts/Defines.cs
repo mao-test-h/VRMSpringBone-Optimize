@@ -106,10 +106,12 @@
         public NativeArray<VariableNodeParam> VariableNodeParams;
 
         public bool IsCreated => TransformAccessArray.isCreated;
+        public int Length { get; }
 
         public SpringBoneJobData(IReadOnlyList<VRMSpringBone.Node> nodes)
         {
             var length = nodes.Count;
+            this.Length = length;
             this.TransformAccessArray = new TransformAccessArray(length);
             this.ParentTransformAccessArray = new TransformAccessArray(length);
             foreach (var node in nodes)
