@@ -55,7 +55,7 @@ Releasesページにて以下の3点を公開している。
 ## VRMSpringBoneOptimize-Jobs
 
 C# JobSystemベースで実装してみたもの。  
-ソースについては"VRMSpringBoneOptimize/JobSystem"以下を参照。  
+ソースについては"VRMSpringBoneOptimize/Jobs"以下を参照。  
 
 機能としてはJobのScheduleに関する管理方法の違いで以下の2点を実装している。  
 
@@ -82,8 +82,8 @@ C# JobSystemベースで実装してみたもの。
 #### 1. モデルに対する設定
 
 - VRMモデルの階層以下にあるSpringBoneが管理されているオブジェクト(スクリーンショットの例で言えば`secondary`)に`CentralizedBuffer`をアタッチ
-- VRMモデルに設定されている`VRMSpringBone`と`VRMSpringBoneColliderGroup`を"VRMSpringBoneOptimize/JobSystem/Scripts"以下にある同名のScriptに置き換える。
-    - TODO: 後で一括で置き換えてくれる拡張を入れる
+- VRMモデルに設定されている`VRMSpringBone`と`VRMSpringBoneColliderGroup`を"VRMSpringBoneOptimize/Jobs/Scripts"以下にある同名のScriptに置き換える。
+    - ※置き換え用の拡張を実装してある。メニューにある「VRMSpringBoneOptimize/Replace SpringBone Components - Jobs」を実行することで、Scene中にあるVRMモデルに対し一括で上記2点をJobSystem向けのものに置き換える事が可能。
 
 ![job_model_settings1](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/job_model_settings1.png)
 
@@ -131,7 +131,7 @@ Transformの更新タイミングを見直すことで解消できるかもし�
 #### 1. モデルに対する設定
 
 - VRMモデルに設定されている`VRMSpringBone`と`VRMSpringBoneColliderGroup`を"VRMSpringBoneOptimize/Entities/Scripts"以下にある同名のScriptに置き換える。
-    - TODO: 後で一括で置き換えてくれる拡張を入れる
+    - ※置き換え用の拡張を実装してある。メニューにある「VRMSpringBoneOptimize/Replace SpringBone Components - Entities」を実行することで、Scene中にあるVRMモデルに対し一括で上記2点をECS向けのものに置き換える事が可能。
 
 
 #### 2. ECS管理クラスの設定
