@@ -85,7 +85,7 @@ C# JobSystemベースで実装してみたもの。
 - VRMモデルに設定されている`VRMSpringBone`と`VRMSpringBoneColliderGroup`を"VRMSpringBoneOptimize/Jobs/Scripts"以下にある同名のScriptに置き換える。
     - ※置き換え用の拡張を実装してある。メニューにある「VRMSpringBoneOptimize/Replace SpringBone Components - Jobs」を実行することで、Scene中にあるVRMモデルに対し一括で上記2点をJobSystem向けのものに置き換える事が可能。
 
-![job_model_settings1](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/job_model_settings1.png)
+![job_model_settings1](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/job_model_settings1.png)
 
 
 #### 2. スケジューラーの生成
@@ -93,7 +93,7 @@ C# JobSystemベースで実装してみたもの。
 - 任意のGameObjectに対し`CentralizedJobScheduler`をアタッチ
     - ※画像の例だと管理クラス用に`Scheduler`と言うGameObjectを用意してそちらにアタッチしている。
 
-![job_model_settings2](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/job_model_settings2.png)
+![job_model_settings2](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/job_model_settings2.png)
 
 
 ### 3. Jobの登録/解除について
@@ -158,7 +158,7 @@ Transformの更新タイミングを見直すことで解消できるかもし�
 - Unity標準のProfilerで計測
 - 途中でモデル1体分の追加/削除を行っている
 
-![performance_demo](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/performance_demo.png)
+![performance_demo](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/performance_demo.png)
 
 
 ## オリジナル
@@ -168,7 +168,7 @@ MainThreadベースで処理されているLateBehaviourUpdateの負荷が支配
 動的なモデルの増減に関してはそこまで負荷が掛かっていない様に見受けられる。  
 ※Memoryの項目でスパイクが発生している箇所辺りでモデルの追加を行っている。
 
-![original](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/original.png)
+![original](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/original.png)
 
 
 ## VRMSpringBoneOptimize-Jobs(CentralizedBuffer)
@@ -177,7 +177,7 @@ MainThreadベースで処理されているLateBehaviourUpdateの負荷が支配
 `IJobParallelForTransform`で物理演算及びTransformの反映を効率よく行えているためか、パフォーマンスとしては4つ挙げた例の中でも一番良い結果となった。  
 問題点としては上述のデメリットの項目にもある通り、動的なモデルの追加/削除を行った際にバッファの再構築が入るので負荷が高い。(2つほどある巨大なスパイクがそれ)
 
-![job_centralized](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/job_centralized.png)
+![job_centralized](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/job_centralized.png)
 
 
 ## VRMSpringBoneOptimize-Jobs(DistributedBuffer)
@@ -187,7 +187,7 @@ Scheduleの回数が多いためか処理の纏まりが悪く、定期的にス
 モデルの増減については目立った負荷は見受けられず。  
 ※こちらもMemoryの項目でスパイクが発生している箇所辺りでモデルの追加を行っているが、追加/削除による負荷は無い様に見受けられる。(定期的に見受けられる青色のスパイクは別の要因で発生しているもの)
 
-![job_distributed](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/job_distributed.png)
+![job_distributed](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/job_distributed.png)
 
 
 ## VRMSpringBoneOptimize-Entities
@@ -196,7 +196,7 @@ Scheduleの回数が多いためか処理の纏まりが悪く、定期的にス
 `VRMSpringBoneOptimize-Jobs(CentralizedBuffer)`の結果とまでは行かずとも、近いぐらいのパフォーマンスは出ている。  
 モデル追加/削除の負荷についてはCentralizedBufferほどで無いにせよTransform周りのバッファ構築の影響で負荷が掛かっている様に見受けられる。  
 
-![ecs](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/ecs.png)
+![ecs](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/ecs.png)
 
 
 
