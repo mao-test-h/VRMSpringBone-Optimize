@@ -4,8 +4,5 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes:
-  - enabled: 1
-    path: Assets/ECS_VRMSpringBone/_Samples/Scenes/PerformanceTest.unity
-    guid: 830709099418eac4080ce548d5357e0a
+  m_Scenes: []
   m_configObjects: {}
