@@ -2,7 +2,7 @@
 
 大量のVRMモデルを動かすことを想定して、[dwango/UniVRM](https://github.com/dwango/UniVRM)に含まれる[VRMSpringBone](https://github.com/dwango/UniVRM/blob/master/Assets/VRM/UniVRM/Scripts/SpringBone/VRMSpringBone.cs)を**C# JobSystem** or **ECS(EntityComponentSystem)** ベースで最適化してみたもの。
 
-Releasesページにて以下の3点を公開している。  
+[Releasesページ](https://github.com/mao-test-h/VRMSpringBone-Optimize/releases)にて以下の3点を公開している。  
 それぞれの詳細及び使い方については後述。
 
 - **VRMSpringBoneOptimize-Jobs**
