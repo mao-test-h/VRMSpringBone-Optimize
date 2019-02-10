@@ -527,8 +527,8 @@ PlayerSettings:
   webGLLinkerTarget: 1
   webGLThreadsSupport: 0
   scriptingDefineSymbols:
-    1: ENABLE_DEBUG;ENABLE_ECS_SPRING_BONE_V2;UNITY_DISABLE_AUTOMATIC_SYSTEM_BOOTSTRAP
-    7: ENABLE_DEBUG;ENABLE_ECS_SPRING_BONE_V2;UNITY_DISABLE_AUTOMATIC_SYSTEM_BOOTSTRAP
+    1: 
+    7: 
   platformArchitecture: {}
   scriptingBackend:
     Android: 1
