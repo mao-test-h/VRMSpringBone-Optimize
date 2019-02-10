@@ -75,7 +75,7 @@ C# JobSystemベースで実装してみたもの。
 ### 導入方法
 
 こちらを有効にするには「ENABLE_JOB_SPRING_BONE」と言うシンボルを定義する必要がある。  
-→ Assembly Definitionに設定
+→ Assembly Definition側で設定している
 
 使い方については`CentralizedBuffer`と`DistributedBuffer`共に設定について大きな違いは無いので、前者を取り上げる形で説明していく。
 
@@ -98,7 +98,7 @@ C# JobSystemベースで実装してみたもの。
 
 ### 3. Jobの登録/解除について
 
-- `CentralizedJobScheduler`に以下の関数を実装しているので、こちらを経由して登録/解除したいVRMモデルが持つ`CentralizedBuffer`を渡すこと。
+- `CentralizedJobScheduler`に以下の関数を実装しているので、こちらに対し登録/解除対象の`CentralizedBuffer`を渡すこと。
     - 登録 : `CentralizedJobScheduler.AddBuffer(`CentralizedJobScheduler`)`
     - 解除 : `CentralizedJobScheduler.RemoveBuffer(`CentralizedJobScheduler`)`
 - ※`CentralizedJobScheduler`の初期化タイミングで良ければこちらのInspectorから設定できる`IsAutoGetBuffer`を有効にすることで、MonoBehaviour.Startのタイミングでシーン中に存在する`CentralizedJobScheduler`を自動で集めて登録することが可能。
@@ -106,10 +106,45 @@ C# JobSystemベースで実装してみたもの。
 
 
 
-
 ## VRMSpringBoneOptimize-Entities
 
-- TODO
+C# JobSystem & ESCベースで実装してみたもの。  
+(内部実装としてはHybridECSをベースとしつつ計算周りをJob化しているイメージ)
+
+なお、ECS側の実装に関してはTransformの更新負荷軽減の為に敢えて以下の仕様で実装している。
+
+- 揺れ物の挙動が遅延して反映される。
+    - 正確に言うと「Transformの更新」→「物理演算」の順で処理を行っているので、物理演算の結果が即時に反映されずに次の更新の呼び出しタイミングで反映される形となっている。
+- m_center非対応
+
+Transformの更新タイミングを見直すことで解消できるかもしれないが、現時点では対応していない。
+
+
+
+### 導入方法
+
+有効にするには「ENABLE_ECS_SPRING_BONE」と言うシンボルを定義する必要がある。  
+→ Assembly Definition側で設定している
+
+※前述の`VRMSpringBoneOptimize-JobSystem`と似通っている部分が多いのでスクリーンショットは割愛。
+
+#### 1. モデルに対する設定
+
+- VRMモデルに設定されている`VRMSpringBone`と`VRMSpringBoneColliderGroup`を"VRMSpringBoneOptimize/Entities/Scripts"以下にある同名のScriptに置き換える。
+    - TODO: 後で一括で置き換えてくれる拡張を入れる
+
+
+#### 2. ECS管理クラスの設定
+
+- 任意のGameObjectに対し`VRMSpringBoneECS`をアタッチ
+
+
+### 3. Entityの登録/解除について
+
+- `VRMSpringBoneECS`に以下の関数を実装しているので、こちらに対し登録/解除対象の`VRMSpringBone`を渡すこと。
+    - 登録 : `VRMSpringBoneECS.AddSpringBone(VRMSpringBone springBone)` or `VRMSpringBoneECS.AddSpringBone(VRMSpringBone[] springBone)`
+    - 解除 : `VRMSpringBoneECS.RemoveSpringBone(VRMSpringBone springBone)`
+- ※`VRMSpringBoneECS`の初期化タイミングで良ければこちらのInspectorから設定できる`IsAutoGetBuffer`を有効にすることで、MonoBehaviour.Startのタイミングでシーン中に存在する`VRMSpringBone`を自動で集めて登録することが可能。
 
 
 
