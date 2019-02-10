@@ -152,8 +152,52 @@ Transformの更新タイミングを見直すことで解消できるかもし�
 
 # パフォーマンスについて
 
+以下の環境で[ニコニ立体ちゃんのVRMモデル](https://3d.nicovideo.jp/works/td32797)256体を同時に動かすデモを実装して負荷計測を行ってみたので、参考までに結果について記載していく。
 
-- TODO
+- 実行環境はStandalone(Windows) + IL2CPP
+- Unity標準のProfilerで計測
+- 途中でモデル1体分の追加/削除を行っている
+
+![performance_demo](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/performance_demo.png)
+
+
+## オリジナル
+
+先ず最初に既存の処理の結果から載せていく。  
+MainThreadベースで処理されているLateBehaviourUpdateの負荷が支配的な印象。  
+動的なモデルの増減に関してはそこまで負荷が掛かっていない様に見受けられる。  
+※Memoryの項目でスパイクが発生している箇所辺りでモデルの追加を行っている。
+
+![original](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/original.png)
+
+
+## VRMSpringBoneOptimize-JobSystem(CentralizedBuffer)
+
+こちらは一括で処理を行うタイプのJobSystemベース実装。  
+`IJobParallelForTransform`で物理演算及びTransformの反映を効率よく行えているためか、パフォーマンスとしては4つ挙げた例の中でも一番良い結果となった。  
+問題点としては上述のデメリットの項目にもある通り、動的なモデルの追加/削除を行った際にバッファの再構築が入るので負荷が高い。(2つほどある巨大なスパイクがそれ)
+
+![job_centralized](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/job_centralized.png)
+
+
+## VRMSpringBoneOptimize-JobSystem(DistributedBuffer)
+
+こちらはモデル毎に処理を行うタイプのJobSystemベース実装。  
+Scheduleの回数が多いためか処理の纏まりが悪く、定期的にスパイクも発生している印象。  
+モデルの増減については目立った負荷は見受けられず。  
+※こちらもMemoryの項目でスパイクが発生している箇所辺りでモデルの追加を行っているが、追加/削除による負荷は無い様に見受けられる。(定期的に見受けられる青色のスパイクは別の要因で発生しているもの)
+
+![job_distributed](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/job_distributed.png)
+
+
+## VRMSpringBoneOptimize-Entities
+
+最後にECSベースの実行結果。  
+`VRMSpringBoneOptimize-JobSystem(CentralizedBuffer)`の結果とまでは行かずとも、近いぐらいのパフォーマンスは出ている。  
+モデル追加/削除の負荷についてはCentralizedBufferほどで無いにせよTransform周りのバッファ構築の影響で負荷が掛かっている様に見受けられる。  
+
+![ecs](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/ecs.png)
+
 
 
 
