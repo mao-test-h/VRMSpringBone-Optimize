@@ -5,7 +5,7 @@
 Releasesページにて以下の3点を公開している。  
 それぞれの詳細及び使い方については後述。
 
-- **VRMSpringBoneOptimize-JobSystem**
+- **VRMSpringBoneOptimize-Jobs**
     - C# JobSystemベースでの実装
 - **VRMSpringBoneOptimize-Entities**
     - C# JobSystem & ESCベースでの実装
@@ -28,7 +28,7 @@ Releasesページにて以下の3点を公開している。
 
 各モジュールはPackageManagerから取得できる幾つかのパッケージに依存しているので、利用する際には事前に入れておくこと。
 
-- **VRMSpringBoneOptimize-JobSystem**
+- **VRMSpringBoneOptimize-Jobs**
     - com.unity.burst": "0.2.4-preview.41
     - com.unity.collections": "0.0.9-preview.11
     - com.unity.jobs": "0.0.7-preview.6
@@ -52,7 +52,7 @@ Releasesページにて以下の3点を公開している。
 # 各モジュールについて
 
 
-## VRMSpringBoneOptimize-JobSystem
+## VRMSpringBoneOptimize-Jobs
 
 C# JobSystemベースで実装してみたもの。  
 ソースについては"VRMSpringBoneOptimize/JobSystem"以下を参照。  
@@ -126,7 +126,7 @@ Transformの更新タイミングを見直すことで解消できるかもし�
 有効にするには「ENABLE_ECS_SPRING_BONE」と言うシンボルを定義する必要がある。  
 → Assembly Definition側で設定している
 
-※前述の`VRMSpringBoneOptimize-JobSystem`と似通っている部分が多いのでスクリーンショットは割愛。
+※前述の`VRMSpringBoneOptimize-Jobs`と似通っている部分が多いのでスクリーンショットは割愛。
 
 #### 1. モデルに対する設定
 
@@ -171,7 +171,7 @@ MainThreadベースで処理されているLateBehaviourUpdateの負荷が支配
 ![original](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/original.png)
 
 
-## VRMSpringBoneOptimize-JobSystem(CentralizedBuffer)
+## VRMSpringBoneOptimize-Jobs(CentralizedBuffer)
 
 こちらは一括で処理を行うタイプのJobSystemベース実装。  
 `IJobParallelForTransform`で物理演算及びTransformの反映を効率よく行えているためか、パフォーマンスとしては4つ挙げた例の中でも一番良い結果となった。  
@@ -180,7 +180,7 @@ MainThreadベースで処理されているLateBehaviourUpdateの負荷が支配
 ![job_centralized](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/job_centralized.png)
 
 
-## VRMSpringBoneOptimize-JobSystem(DistributedBuffer)
+## VRMSpringBoneOptimize-Jobs(DistributedBuffer)
 
 こちらはモデル毎に処理を行うタイプのJobSystemベース実装。  
 Scheduleの回数が多いためか処理の纏まりが悪く、定期的にスパイクも発生している印象。  
@@ -193,7 +193,7 @@ Scheduleの回数が多いためか処理の纏まりが悪く、定期的にス
 ## VRMSpringBoneOptimize-Entities
 
 最後にECSベースの実行結果。  
-`VRMSpringBoneOptimize-JobSystem(CentralizedBuffer)`の結果とまでは行かずとも、近いぐらいのパフォーマンスは出ている。  
+`VRMSpringBoneOptimize-Jobs(CentralizedBuffer)`の結果とまでは行かずとも、近いぐらいのパフォーマンスは出ている。  
 モデル追加/削除の負荷についてはCentralizedBufferほどで無いにせよTransform周りのバッファ構築の影響で負荷が掛かっている様に見受けられる。  
 
 ![ecs](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/feature/dev_update/Documents/img/result/ecs.png)
