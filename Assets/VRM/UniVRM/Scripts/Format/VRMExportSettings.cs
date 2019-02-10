@@ -24,6 +24,8 @@ namespace VRM
 
         public bool PoseFreeze = true;
 
+        public bool UseExperimentalExporter = true;
+
         public IEnumerable<string> CanExport()
         {
             if (Source == null)
@@ -185,15 +187,6 @@ namespace VRM
             }
 
             {
-                // lookAt
-                var src = go.GetComponent<VRMLookAt>();
-                if (src != null)
-                {
-                    src.CopyTo(root, map);
-                }
-            }
-
-            {
                 // humanoid
                 var dst = root.AddComponent<VRMHumanoidDescription>();
                 var src = go.GetComponent<VRMHumanoidDescription>();
@@ -250,7 +243,7 @@ namespace VRM
         }
 
         void Export(string path, List<GameObject> destroy)
-        { 
+        {
             var target = Source;
             if (IsPrefab(target))
             {
@@ -277,7 +270,7 @@ namespace VRM
                 vrm.extensions.VRM.meta.title = Title;
                 vrm.extensions.VRM.meta.author = Author;
 
-                var bytes = vrm.ToGlbBytes();
+                var bytes = vrm.ToGlbBytes(UseExperimentalExporter);
                 File.WriteAllBytes(path, bytes);
                 Debug.LogFormat("Export elapsed {0}", sw.Elapsed);
             }

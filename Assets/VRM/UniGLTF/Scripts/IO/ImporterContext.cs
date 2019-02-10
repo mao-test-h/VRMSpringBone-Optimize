@@ -232,7 +232,7 @@ namespace UniGLTF
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="bytes"></param>
         public void ParseGlb(Byte[] bytes)
@@ -503,9 +503,9 @@ namespace UniGLTF
                 .ContinueWithCoroutine(Scheduler.MainThread, LoadMaterials)
                 .OnExecute(Scheduler.ThreadPool, parent =>
                 {
-                    if (GLTF.meshes
-                        .SelectMany(x => x.primitives)
-                        .Any(x => x.extensions.KHR_draco_mesh_compression != null))
+                    // UniGLTF does not support draco
+                    // https://github.com/KhronosGroup/glTF/blob/master/extensions/2.0/Khronos/KHR_draco_mesh_compression/README.md#conformance
+                    if (GLTF.extensionsRequired.Contains("KHR_draco_mesh_compression"))
                     {
                         throw new UniGLTFNotSupportedException("draco is not supported");
                     }
@@ -802,14 +802,31 @@ namespace UniGLTF
             }
         }
 
-        public virtual bool IsOverwrite(UnityEngine.Object o)
+        public virtual bool AvoidOverwriteAndLoad(UnityPath assetPath, UnityEngine.Object o)
         {
-            if(o is Material)
+            if (o is Material)
             {
-                return false;
+                var loaded = assetPath.LoadAsset<Material>();
+
+                // replace component reference
+                foreach(var mesh in Meshes)
+                {
+                    foreach(var r in mesh.Renderers)
+                    {
+                        for(int i=0; i<r.sharedMaterials.Length; ++i)
+                        {
+                            if (r.sharedMaterials.Contains(o))
+                            {
+                                r.sharedMaterials = r.sharedMaterials.Select(x => x == o ? loaded : x).ToArray();
+                            }
+                        }
+                    }
+                }
+
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         public void SaveAsAsset(UnityPath prefabPath)
@@ -841,13 +858,14 @@ namespace UniGLTF
                 {
                     if (assetPath.IsFileExists)
                     {
-                        if (!IsOverwrite(o))
+                        if (AvoidOverwriteAndLoad(assetPath, o))
                         {
-                            // 上書きしない
-                            Debug.LogWarningFormat("already exists. skip {0}", assetPath);
+                            // 上書きせずに既存のアセットからロードして置き換えた
                             continue;
                         }
                     }
+
+                    // アセットとして書き込む
                     assetPath.Parent.EnsureFolder();
                     assetPath.CreateAsset(o);
                     paths.Add(assetPath);
@@ -958,7 +976,7 @@ namespace UniGLTF
         /// Destroy resources that created ImporterContext for runtime load.
         /// </summary>
         public void DestroyRootAndResources()
-        { 
+        {
             if (!Application.isPlaying)
             {
                 Debug.LogWarningFormat("Dispose called in editor mode. This function is for runtime");

@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: DefaultCompany
-  productName: ECS-VRMSpringBone
+  productName: VRMSpringBone-Optimize
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -106,6 +106,11 @@ PlayerSettings:
   xboxOneDisableEsram: 0
   xboxOnePresentImmediateThreshold: 0
   switchQueueCommandMemory: 0
+  switchQueueControlMemory: 16384
+  switchQueueComputeMemory: 262144
+  switchNVNShaderPoolsGranularity: 33554432
+  switchNVNDefaultPoolsGranularity: 16777216
+  switchNVNOtherPoolsGranularity: 16777216
   vulkanEnableSetSRGBWrite: 0
   m_SupportedAspectRatios:
     4:3: 1
@@ -420,6 +425,7 @@ PlayerSettings:
   switchAllowsRuntimeAddOnContentInstall: 0
   switchDataLossConfirmation: 0
   switchUserAccountLockEnabled: 0
+  switchSystemResourceMemory: 16777216
   switchSupportedNpadStyles: 3
   switchNativeFsCacheSize: 32
   switchIsHoldTypeHorizontal: 0
@@ -521,8 +527,8 @@ PlayerSettings:
   webGLLinkerTarget: 1
   webGLThreadsSupport: 0
   scriptingDefineSymbols:
-    1: ENABLE_DEBUG;ENABLE_ECS_SPRING_BONE_V2;UNITY_DISABLE_AUTOMATIC_SYSTEM_BOOTSTRAP
-    7: ENABLE_DEBUG;ENABLE_ECS_SPRING_BONE_V2;UNITY_DISABLE_AUTOMATIC_SYSTEM_BOOTSTRAP
+    1: ENABLE_DEBUG;ENABLE_JOB_SPRING_BONE;ENABLE_ECS_SPRING_BONE
+    7: 
   platformArchitecture: {}
   scriptingBackend:
     Android: 1
