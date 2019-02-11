@@ -14,14 +14,14 @@
 
         void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
         {
-            float3 pos = trsAccess.position;
+            var mat = new float4x4(trsAccess.rotation, trsAccess.position);
             var param = this.GroupParams[index];
             for (var i = 0; i < param.SphereCollidersLength; i++)
             {
                 var blittableFields = param.GetBlittableFields(i);
                 var collider = new SphereCollider
                 {
-                    Position = pos + blittableFields.Offset,
+                    Position = math.transform(mat, blittableFields.Offset),
                     Radius = blittableFields.Radius,
                 };
                 this.ColliderHashMap.Add(param.InstanceID, collider);

@@ -101,6 +101,8 @@
                 entity, new ColliderGroupTag());
             manager.AddComponentData(
                 entity, new Position() {Value = this.transform.position});
+            manager.AddComponentData(
+                entity, new ColliderGroupRotation() {Value = this.transform.rotation});
             return entity;
         }
 

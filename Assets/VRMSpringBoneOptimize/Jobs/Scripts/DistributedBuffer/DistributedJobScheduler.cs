@@ -211,19 +211,20 @@
 
         void DrawColliderGroupGizmos()
         {
+            Gizmos.matrix = Matrix4x4.identity;
             foreach (var buff in this._currentBuffers)
             {
-                Gizmos.matrix = Matrix4x4.identity;
                 var length = buff.ColliderGroupJobDataValue.TransformAccessArray.length;
                 var groupParam = buff.ColliderGroupJobDataValue.GroupParams;
                 for (var i = 0; i < length; i++)
                 {
-                    var position = buff.ColliderGroupJobDataValue.TransformAccessArray[i].position;
+                    var trs = buff.ColliderGroupJobDataValue.TransformAccessArray[i];
+                    var mat = new float4x4(trs.rotation, trs.position);
                     for (var j = 0; j < groupParam[i].SphereCollidersLength; j++)
                     {
                         var sphereCollider = groupParam[i].GetBlittableFields(j);
                         Gizmos.color = this._jobColliderColor;
-                        Gizmos.DrawWireSphere(position + (Vector3) sphereCollider.Offset, sphereCollider.Radius);
+                        Gizmos.DrawWireSphere(math.transform(mat, sphereCollider.Offset), sphereCollider.Radius);
                     }
                 }
             }

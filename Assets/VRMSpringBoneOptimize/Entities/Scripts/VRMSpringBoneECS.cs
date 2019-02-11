@@ -297,10 +297,14 @@
                         .GetComponentData<ColliderGroup>(colliderEntity).Entity;
                     var colliderGroupPosition = this._entityManager
                         .GetComponentData<Position>(groupEntity).Value;
+                    var colliderGroupRotation = this._entityManager
+                        .GetComponentData<ColliderGroupRotation>(groupEntity).Value;
                     var sphereColliderParam = this._entityManager
                         .GetComponentData<ColliderGroupBlittableFieldsPtr>(colliderEntity).GetValue;
+                    var mat = new Unity.Mathematics.float4x4(colliderGroupRotation, colliderGroupPosition);
                     Gizmos.color = this._ecsColliderColor;
-                    Gizmos.DrawWireSphere(colliderGroupPosition + sphereColliderParam.Offset,
+                    Gizmos.DrawWireSphere(
+                        Unity.Mathematics.math.transform(mat, sphereColliderParam.Offset),
                         sphereColliderParam.Radius);
                 }
             }

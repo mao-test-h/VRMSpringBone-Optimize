@@ -38,15 +38,18 @@
             [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderGroup> ColliderGroups;
             [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderGroupBlittableFieldsPtr> ColliderGroupBlittableFieldsPtr;
             [ReadOnly] public ComponentDataFromEntity<Position> ColliderGroupPosition;
+            [ReadOnly] public ComponentDataFromEntity<ColliderGroupRotation> ColliderGroupRotation;
             public NativeMultiHashMap<Entity, SphereCollider>.Concurrent ColliderHashMap;
 
             public void Execute(int index)
             {
-                var pos = this.ColliderGroupPosition[this.ColliderGroups[index].Entity].Value;
+                var mat = new float4x4(
+                    this.ColliderGroupRotation[this.ColliderGroups[index].Entity].Value,
+                    this.ColliderGroupPosition[this.ColliderGroups[index].Entity].Value);
                 var fields = this.ColliderGroupBlittableFieldsPtr[index].GetValue;
                 var collider = new SphereCollider
                 {
-                    Position = pos + fields.Offset,
+                    Position = math.transform(mat, fields.Offset),
                     Radius = fields.Radius,
                 };
                 this.ColliderHashMap.Add(this.ColliderIdentifies[index].Entity, collider);
@@ -271,6 +274,7 @@
                 ColliderGroups = colliderGroups,
                 ColliderGroupBlittableFieldsPtr = colliderGroupBlittableFieldsPtr,
                 ColliderGroupPosition = base.GetComponentDataFromEntity<Position>(true),
+                ColliderGroupRotation = base.GetComponentDataFromEntity<ColliderGroupRotation>(true),
                 ColliderHashMap = this._colliderHashMap.ToConcurrent(),
             }.Schedule(groupLength, DefaultInnerloopBatchCount, handleRef);
         }

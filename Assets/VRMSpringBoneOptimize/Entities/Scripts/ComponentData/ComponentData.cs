@@ -35,6 +35,12 @@
     {
     }
     
+   // Transform.rotation(ColliderGroup用の回転値)
+    public struct ColliderGroupRotation : IComponentData
+    {
+        public quaternion Value;
+    } 
+    
     // SphereColliderEntityが所属するVRMSpringBoneを把握するためのEntity
     // ※EntityにはColliderIdentifyTagを持ったEntityが入る
     public struct ColliderIdentify : IComponentData

@@ -304,12 +304,13 @@
             var groupParam = this._colliderGroupJobData.GroupParams;
             for (var i = 0; i < length; i++)
             {
-                var position = this._colliderGroupJobData.TransformAccessArray[i].position;
+                var trs = this._colliderGroupJobData.TransformAccessArray[i];
+                var mat = new float4x4(trs.rotation, trs.position);
                 for (var j = 0; j < groupParam[i].SphereCollidersLength; j++)
                 {
                     var sphereCollider = groupParam[i].GetBlittableFields(j);
                     Gizmos.color = this._jobColliderColor;
-                    Gizmos.DrawWireSphere(position + (Vector3) sphereCollider.Offset, sphereCollider.Radius);
+                    Gizmos.DrawWireSphere(math.transform(mat, sphereCollider.Offset), sphereCollider.Radius);
                 }
             }
         }

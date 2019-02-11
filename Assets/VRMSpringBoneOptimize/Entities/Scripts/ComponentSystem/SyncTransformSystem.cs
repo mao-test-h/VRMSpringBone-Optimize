@@ -21,6 +21,7 @@
             [ReadOnly] public EntityArray Entities;
             [ReadOnly] public ComponentDataFromEntity<Rotation> Rotations;
             [NativeDisableParallelForRestriction] public ComponentDataFromEntity<Position> Positions;
+            [NativeDisableParallelForRestriction] public ComponentDataFromEntity<ColliderGroupRotation> ColliderGroupRotation;
 
             void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
             {
@@ -29,6 +30,10 @@
                 if (this.Rotations.Exists(entity))
                 {
                     trsAccess.rotation = this.Rotations[entity].Value;
+                }
+                else if (ColliderGroupRotation.Exists(entity))
+                {
+                    this.ColliderGroupRotation[entity] = new ColliderGroupRotation {Value = trsAccess.rotation};
                 }
             }
         }
@@ -65,6 +70,7 @@
                 Entities = entities,
                 Positions = base.GetComponentDataFromEntity<Position>(),
                 Rotations = base.GetComponentDataFromEntity<Rotation>(true),
+                ColliderGroupRotation = base.GetComponentDataFromEntity<ColliderGroupRotation>(),
             }.Schedule(transforms, handle);
             return handle;
         }
