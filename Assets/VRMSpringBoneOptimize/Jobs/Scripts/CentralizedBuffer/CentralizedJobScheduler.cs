@@ -134,17 +134,17 @@
             // コライダーの更新
             this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
                 this._colliderHashMapLength, Allocator.TempJob);
-            this._jobHandle = new UpdateColliderHashJob
+            var updateColliderHashJobHandle = new UpdateColliderHashJob
             {
                 GroupParams = this._colliderGroupJobData.GroupParams,
                 ColliderHashMap = this._colliderHashMap.ToConcurrent(),
             }.Schedule(this._colliderGroupJobData.TransformAccessArray);
 
             // 親の回転の取得
-            this._jobHandle = new UpdateParentRotationJob
+            var updateParentRotationJobHandle = new UpdateParentRotationJob
             {
                 ParentRotations = this._parentRotations,
-            }.Schedule(this._springBoneJobData.ParentTransformAccessArray, this._jobHandle);
+            }.Schedule(this._springBoneJobData.ParentTransformAccessArray);
 
             // 物理演算
             this._jobHandle = new LogicJob
@@ -154,8 +154,9 @@
                 DeltaTime = Time.deltaTime,
                 ColliderHashMap = this._colliderHashMap,
                 VariableNodeParams = this._springBoneJobData.VariableNodeParams,
-            }.Schedule(this._springBoneJobData.TransformAccessArray, this._jobHandle);
-
+            }.Schedule(this._springBoneJobData.TransformAccessArray,
+                JobHandle.CombineDependencies(updateColliderHashJobHandle, updateParentRotationJobHandle));
+            
             JobHandle.ScheduleBatchedJobs();
         }
         
