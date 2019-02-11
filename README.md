@@ -155,6 +155,7 @@ Transformの更新タイミングを見直すことで解消できるかもし�
 以下の環境で[ニコニ立体ちゃんのVRMモデル](https://3d.nicovideo.jp/works/td32797)256体を同時に動かすデモを実装して負荷計測を行ってみたので、参考までに結果について記載していく。
 
 - 実行環境はStandalone(Windows) + IL2CPP
+    - CPU : Intel Core i7-8700K (Worker Threadは11本)
 - Unity標準のProfilerで計測
 - 途中でモデル1体分の追加/削除を行っている
 
