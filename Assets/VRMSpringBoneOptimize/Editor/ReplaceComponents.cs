@@ -12,9 +12,14 @@
 #if ENABLE_ECS_SPRING_BONE
     using EntitiesVRMSpringBone = VRM.Optimize.Entities.VRMSpringBone;
     using EntitiesVRMSpringBoneColliderGroup = VRM.Optimize.Entities.VRMSpringBoneColliderGroup;
-
 #endif
 
+    // MEMO: Assembly-CSharp-Editor.dllの配下に置いてある理由について。
+    // こちらはVRM.SpringBone等を参照する都合上、Assembly-CSharp-Editorの配下に置く必要があった。
+    // UniVRM v0.50からはasmdef対応されたので、VRM.asmdefの参照を紐付けてやれば
+    // こちらの拡張スクリプト自体にもasmdefは設定可能となるが、
+    // 非対応の環境(旧バージョンのUniVRMを使用している等)も考慮して敢えて設定しないままとしている。
+    // 特にasmdef化出来ない理由はないので、必要な方は必要に応じて設定してしまっても問題はない。
 
     public static class ReplaceComponents
     {

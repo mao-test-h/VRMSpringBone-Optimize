@@ -45,6 +45,8 @@
         NativeArray<BlittableFields> _blittableFieldsArray;
         GameObjectEntity _gameObjectEntity;
 
+        EntityManager _entityManager;
+        
         #endregion // Fields
 
 
@@ -64,7 +66,7 @@
                 return;
             }
 
-            this.CopyColliders();
+            this.CopyBlittableFields();
         }
 #endif
 
@@ -74,35 +76,43 @@
 
         #region // Public Methods
 
-        public void Initialize()
+        public void Initialize(EntityManager entityManager)
         {
             if (!this.IsActive) return;
+            this._entityManager = entityManager;
 
             // コライダー用のNativeArrayを確保
             if (!this._blittableFieldsArray.IsCreated)
             {
                 this._blittableFieldsArray =
                     new NativeArray<BlittableFields>(this.Colliders.Length, Allocator.Persistent);
-                this.CopyColliders();
+                this.CopyBlittableFields();
             }
         }
 
-        public Entity CreateEntity(EntityManager manager)
+        public Entity CreateEntity()
         {
             if (this._gameObjectEntity != null)
             {
                 return this.Entity;
             }
-            this._gameObjectEntity = this.gameObject.AddComponent<GameObjectEntity>();
+
+            this._gameObjectEntity = this.gameObject.GetComponent<GameObjectEntity>();
+            if (this._gameObjectEntity == null)
+            {
+                this._gameObjectEntity = this.gameObject.AddComponent<GameObjectEntity>();
+            }
             this.Entity = this._gameObjectEntity.Entity;
 
             var entity = this.Entity;
-            manager.AddComponentData(
-                entity, new ColliderGroupTag());
-            manager.AddComponentData(
-                entity, new Position() {Value = this.transform.position});
-            manager.AddComponentData(
-                entity, new ColliderGroupRotation() {Value = this.transform.rotation});
+            this._entityManager.AddComponentData(
+                entity, new ColliderGroupInstanceID {Value = this.GetInstanceID()});
+            this._entityManager.AddComponentData(
+                entity, new ColliderGroupBlittableFieldsPtr()
+                {
+                    Value = (BlittableFields*) this._blittableFieldsArray.GetUnsafeReadOnlyPtr(),
+                    Length = this._blittableFieldsArray.Length,
+                });
             return entity;
         }
 
@@ -114,19 +124,13 @@
             }
         }
 
-        public BlittableFields* GetBlittableFieldsPtr(int index)
-        {
-            var ptr = (BlittableFields*) this._blittableFieldsArray.GetUnsafePtr();
-            return ptr + index;
-        }
-
         #endregion // Public Methods
 
         // ----------------------------------------------------
 
         #region // Private Methods
 
-        void CopyColliders()
+        void CopyBlittableFields()
         {
             for (var i = 0; i < this.Colliders.Length; i++)
             {

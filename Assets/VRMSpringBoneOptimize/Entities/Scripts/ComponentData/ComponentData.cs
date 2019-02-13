@@ -1,64 +1,35 @@
 ﻿namespace VRM.Optimize.Entities
 {
+    using UnityEngine.Assertions;
     using Unity.Entities;
     using Unity.Mathematics;
 
     // ----------------------------------------------------
 
-    #region // Transforms
-
-    // Transform.position
-    public struct Position : IComponentData
-    {
-        public float3 Value;
-    }
-
-    // Transform.rotation
-    public struct Rotation : IComponentData
-    {
-        public quaternion Value;
-    }
-
-    #endregion // Transforms
-
-    // ----------------------------------------------------
-
     #region // VRMSpringBoneColliderGroup
 
-    // VRMSpringBoneに所属するVRMSpringBoneColliderGroupの管理タグ
-    public struct ColliderIdentifyTag : IComponentData
+    // SphereCollider計測用のタグ
+    // ※NativeMultiHashMap生成時の長さの算出に使用する
+    public struct SphereColliderTag : IComponentData
     {
+        public byte Dummy;
     }
 
-    // VRMSpringBoneColliderGroup識別用
-    public struct ColliderGroupTag : IComponentData
+    public struct ColliderGroupInstanceID : IComponentData
     {
+        public int Value;
     }
-    
-   // Transform.rotation(ColliderGroup用の回転値)
-    public struct ColliderGroupRotation : IComponentData
-    {
-        public quaternion Value;
-    } 
-    
-    // SphereColliderEntityが所属するVRMSpringBoneを把握するためのEntity
-    // ※EntityにはColliderIdentifyTagを持ったEntityが入る
-    public struct ColliderIdentify : IComponentData
-    {
-        public Entity Entity;
-    }
-    
-    // SphereColliderEntityが所属するVRMSpringBoneColliderGroupを把握するためのEntity
-    // ※EntityにはColliderGroupTagを持ったEntityが入る
-    public struct ColliderGroup : IComponentData
-    {
-        public Entity Entity;
-    }
-    
+
     public unsafe struct ColliderGroupBlittableFieldsPtr : IComponentData
     {
         public VRMSpringBoneColliderGroup.BlittableFields* Value;
-        public VRMSpringBoneColliderGroup.BlittableFields GetValue => *this.Value;
+        public int Length;
+
+        public VRMSpringBoneColliderGroup.BlittableFields GetBlittableFields(int index)
+        {
+            Assert.IsTrue((index >= 0) && (index < this.Length));
+            return *(this.Value + index);
+        }
     }
 
     #endregion // VRMSpringBoneColliderGroup
@@ -71,6 +42,18 @@
     {
         public VRMSpringBone.BlittableFields* Value;
         public VRMSpringBone.BlittableFields GetValue => *this.Value;
+    }
+
+    // 親のEntity
+    public struct ParentEntity : IComponentData
+    {
+        public Entity Entity;
+    }
+
+    // transform.rotationの保持用
+    public struct Rotation : IComponentData
+    {
+        public quaternion Value;
     }
 
     // VRMSpringBoneLogic.m_length
@@ -91,11 +74,6 @@
         public float3 Value;
     }
 
-    public struct Parent : IComponentData
-    {
-        public Entity Entity;
-    }
-
     // VRMSpringBoneLogic.m_currentTail
     public struct CurrentTail : IComponentData
     {
@@ -106,6 +84,18 @@
     public struct PrevTail : IComponentData
     {
         public float3 Value;
+    }
+
+    // VRMSpringBoneLogic.m_centerとなるGameObjectEntity
+    public struct CenterEntity : IComponentData
+    {
+        public Entity Entity;
+    }
+    
+    // VRMSpringBoneLogic.m_center
+    public struct Center : IComponentData
+    {
+        public float4x4 Value;
     }
 
     #endregion // VRMSpringBoneLogic

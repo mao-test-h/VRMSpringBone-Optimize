@@ -62,7 +62,7 @@
 
             var parentRotation = this.ParentRotations[index];
             float3 position = trsAccess.position;
-
+            
             // 物理演算で用いるパラメータの事前計算
             var stiffnessForce = blittableFields.StiffnessForce * this.DeltaTime;
             var dragForce = blittableFields.DragForce;
