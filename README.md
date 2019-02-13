@@ -8,7 +8,7 @@
 - **VRMSpringBoneOptimize-Jobs**
     - C# JobSystemベースでの実装
 - **VRMSpringBoneOptimize-Entities**
-    - C# JobSystem & ESCベースでの実装
+    - C# JobSystem & HybridESCベースでの実装
 - **VRMSpringBoneOptimize**
     - 上記2点を含んだもの。
 
@@ -108,18 +108,8 @@ C# JobSystemベースで実装してみたもの。
 
 ## VRMSpringBoneOptimize-Entities
 
-C# JobSystem & ESCベースで実装してみたもの。  
-(内部実装としてはHybridECSをベースとしつつ計算周りをJob化しているイメージ)
-
-なお、ECS側の実装に関してはTransformの更新負荷軽減の為に敢えて以下の仕様で実装している。
-
-- 揺れ物の挙動が遅延して反映される。
-    - 正確に言うと「Transformの更新」→「物理演算」の順で処理を行っているので、物理演算の結果が即時に反映されずに次の更新の呼び出しタイミングで反映される形となっている。
-- m_center非対応
-
-Transformの更新タイミングを見直すことで解消できるかもしれないが、現時点では対応していない。
-
-
+C# JobSystem & HybridECSベースで実装してみたもの。  
+ソースについては"VRMSpringBoneOptimize/Entities"以下を参照。 
 
 ### 導入方法
 
@@ -194,8 +184,11 @@ Scheduleの回数が多いためか処理の纏まりが悪く、定期的にス
 ## VRMSpringBoneOptimize-Entities
 
 最後にECSベースの実行結果。  
-`VRMSpringBoneOptimize-Jobs(CentralizedBuffer)`の結果とまでは行かずとも、近いぐらいのパフォーマンスは出ている。  
+`VRMSpringBoneOptimize-Jobs(CentralizedBuffer)`に近いぐらいのパフォーマンスは出ている感。  
 モデル追加/削除の負荷についてはCentralizedBufferほどで無いにせよTransform周りのバッファ構築の影響で負荷が掛かっている様に見受けられる。  
+
+ECSと言えどもHybrid且つメモリ周りについてもそこまで効率化している実装ではないので、結果としては`CentralizedBuffer`と比べるとデータの管理方法が変わっただけという感じとなった。  
+※ちなみに、モデル追加/削除時の負荷についてはTransformを持つアーキタイプの数が増えれば増えるほど更新されるTransformAccessArrayの数が多くなり、その分負荷が上昇してくるので注意する必要がある。
 
 ![ecs](https://github.com/mao-test-h/VRMSpringBone-Optimize/blob/master/Documents/img/result/ecs.png)
 
