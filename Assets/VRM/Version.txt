@@ -1,1 +1,3 @@
-UniVRM-0.49_43af.unitypackage
+UniVRM-0.50_9db7.unitypackage
+UniVRM.asmdef-0.50_9db7.unitypackage
+

@@ -14,13 +14,22 @@
 
         #region // Defines
 
-        public struct BlittableFields
+        public unsafe struct BlittableFields
         {
             public float StiffnessForce;
             public float GravityPower;
             public float3 GravityDir;
             public float DragForce;
             public float HitRadius;
+
+            public int* ColliderGroupInstanceIDs;
+            public int ColliderGroupInstanceIDsLength;
+
+            public int GetColliderGroupInstanceID(int index)
+            {
+                Assert.IsTrue((index >= 0) && (index < this.ColliderGroupInstanceIDsLength));
+                return *(ColliderGroupInstanceIDs + index);
+            }
         }
 
         public sealed class Node
@@ -28,23 +37,30 @@
             public Transform Transform { get; }
             public Entity Entity { get; private set; }
 
-            GameObjectEntity _gameObjectEntity;
             readonly Node _parent;
-            readonly VRMSpringBone _springBone;
+            readonly BlittableFields* _blittableFieldsPtr;
 
-            public Node(VRMSpringBone springBone, Transform trs, Node parent = null)
+            readonly EntityManager _entityManager;
+            readonly Entity _centerEntity;
+
+            public Node(
+                Transform trs,
+                BlittableFields* blittableFieldsPtr,
+                EntityManager entityManager,
+                Entity centerEntity,
+                Node parent = null)
             {
                 this.Transform = trs;
+                this._blittableFieldsPtr = blittableFieldsPtr;
+                this._entityManager = entityManager;
+                this._centerEntity = centerEntity;
                 this._parent = parent;
-                this._springBone = springBone;
             }
 
-            public Entity CreateEntity(EntityManager manager)
+            public Entity CreateEntity()
             {
-                this._gameObjectEntity = this.Transform.gameObject.AddComponent<GameObjectEntity>();
-                this.Entity = this._gameObjectEntity.Entity;
-
-                var entity = this.Entity;
+                var gameObjectEntity = GetOrAddComponent<GameObjectEntity>(this.Transform.gameObject);
+                var entity = this.Entity = gameObjectEntity.Entity;
                 var nodeTrs = this.Transform;
                 Vector3 localChildPosition;
                 if (nodeTrs.childCount == 0)
@@ -63,33 +79,70 @@
                         localPosition.y * scale.y,
                         localPosition.z * scale.z);
                 }
-                manager.AddComponentData(
-                    entity, new SpringBoneBlittableFieldsPtr{Value = this._springBone.BlittableFieldsPtr});
-                manager.AddComponentData(
-                    entity, new LocalRotation {Value = nodeTrs.localRotation});
-                manager.AddComponentData(
-                    entity, new BoneAxis {Value = localChildPosition.normalized});
-                manager.AddComponentData(
+
+                this._entityManager.AddComponentData(
+                    entity, new SpringBoneBlittableFieldsPtr {Value = this._blittableFieldsPtr});
+                this._entityManager.AddComponentData(
                     entity, new Length {Value = localChildPosition.magnitude});
+                this._entityManager.AddComponentData(
+                    entity, new LocalRotation {Value = nodeTrs.localRotation});
+                this._entityManager.AddComponentData(
+                    entity, new BoneAxis {Value = localChildPosition.normalized});
 
-                var isParent = (this._parent != null);
-                manager.AddComponentData(
-                    entity, new Position {Value = nodeTrs.position});
-                manager.AddComponentData(
+                var parentEntity = Entity.Null;
+                if (this._parent != null)
+                {
+                    parentEntity = this._parent.Entity;
+                }
+                else if (nodeTrs.parent != null)
+                {
+                    // ルートの親が存在する場合には回転値取得用のEntityとして設定する
+                    var rootParentObjectEntity = GetOrAddComponent<GameObjectEntity>(nodeTrs.parent.gameObject);
+                    var rootParentEntity = rootParentObjectEntity.Entity;
+                    if (!this._entityManager.HasComponent<Rotation>(rootParentEntity))
+                    {
+                        this.SetDummyData(ref rootParentEntity, nodeTrs.parent.rotation);
+                    }
+
+                    parentEntity = rootParentEntity;
+                }
+
+                this._entityManager.AddComponentData(
+                    entity, new ParentEntity {Entity = parentEntity});
+                this._entityManager.AddComponentData(
                     entity, new Rotation {Value = nodeTrs.rotation});
-                manager.AddComponentData(
-                    entity, new Parent {Entity = isParent ? this._parent.Entity : Entity.Null});
-                manager.AddComponentData(
-                    entity, new ColliderIdentify {Entity = this._springBone.ColliderIdentifyEntity});
 
-                // TODO: 現状m_centerは非対応
+                this._entityManager.AddComponentData(
+                    entity, new CenterEntity() {Entity = this._centerEntity});
                 var currentTail = nodeTrs.TransformPoint(localChildPosition);
-                manager.AddComponentData(
+                if (this._entityManager.Exists(this._centerEntity))
+                {
+                    var centerMatrix = this._entityManager.GetComponentData<Center>(this._centerEntity);
+                    var centerInvertMatrix = math.inverse(centerMatrix.Value);
+                    currentTail = math.transform(centerInvertMatrix, currentTail);
+                }
+                
+                this._entityManager.AddComponentData(
                     entity, new CurrentTail {Value = currentTail});
-                manager.AddComponentData(
+                this._entityManager.AddComponentData(
                     entity, new PrevTail {Value = currentTail});
 
                 return entity;
+            }
+
+            void SetDummyData(ref Entity entity, quaternion rotation)
+            {
+                // 回転値は全てで必要となるので設定
+                this._entityManager.AddComponentData(entity, new Rotation {Value = rotation});
+                // 残りはアーキタイプを合わせるために既定値を入れておく
+                this._entityManager.AddComponentData(entity, new SpringBoneBlittableFieldsPtr {Value = null});
+                this._entityManager.AddComponentData(entity, new Length());
+                this._entityManager.AddComponentData(entity, new LocalRotation());
+                this._entityManager.AddComponentData(entity, new BoneAxis());
+                this._entityManager.AddComponentData(entity, new ParentEntity());
+                this._entityManager.AddComponentData(entity, new CenterEntity());
+                this._entityManager.AddComponentData(entity, new CurrentTail());
+                this._entityManager.AddComponentData(entity, new PrevTail());
             }
         }
 
@@ -117,13 +170,14 @@
 
         #region // Fields
 
-        public BlittableFields* BlittableFieldsPtr { get; private set; } = null;
         public List<Node> Nodes { get; private set; } = null;
-        public Entity ColliderIdentifyEntity;
         public List<Entity> SphereColliderEntities = null;
 
-        public List<Transform> Transforms { get; private set; } = new List<Transform>();
-        public List<Entity> Entities { get; private set; } = new List<Entity>();
+        BlittableFields* _blittableFieldsPtr = null;
+        NativeArray<int> _colliderGroupInstanceIDs;
+
+        EntityManager _entityManager;
+        Entity _centerEntity;
 
         #endregion // Fields
 
@@ -139,12 +193,12 @@
         void Update()
         {
             // Editor上でのみInspectorからの動的変更を考慮する
-            if (this.BlittableFieldsPtr == null)
+            if (this._blittableFieldsPtr == null)
             {
                 return;
             }
 
-            this.CopySpringBoneParam();
+            this.CopyBlittableFields();
         }
 #endif
 
@@ -154,21 +208,40 @@
 
         #region // Public Methods
 
-        public void Initialize()
+        public void Initialize(EntityManager entityManager)
         {
             Assert.IsFalse(this.RootBones == null || this.RootBones.Count <= 0);
+            this._entityManager = entityManager;
 
             // コライダーの初期化
-            foreach (var collider in this.ColliderGroups)
+            if (this.ColliderGroups != null && this.ColliderGroups.Length > 0)
             {
-                collider.Initialize();
+                foreach (var collider in this.ColliderGroups)
+                {
+                    collider.Initialize(this._entityManager);
+                }
+
+                this._colliderGroupInstanceIDs = new NativeArray<int>(this.ColliderGroups.Length, Allocator.Persistent);
+                for (var i = 0; i < this._colliderGroupInstanceIDs.Length; i++)
+                {
+                    this._colliderGroupInstanceIDs[i] = this.ColliderGroups[i].GetInstanceID();
+                }
+            }
+
+            this._centerEntity = Entity.Null;
+            if (this.m_center != null)
+            {
+                var centerEntity = GetOrAddComponent<GameObjectEntity>(this.m_center.gameObject);
+                this._centerEntity = centerEntity.Entity;
+                this._entityManager.AddComponentData(
+                    this._centerEntity, new Center() {Value = this.m_center.localToWorldMatrix});
             }
 
             // 各種パラメータ用のメモリ確保 + 初期化
             {
-                this.BlittableFieldsPtr =
+                this._blittableFieldsPtr =
                     (BlittableFields*) UnsafeUtilityHelper.Malloc<BlittableFields>(Allocator.Persistent);
-                this.CopySpringBoneParam();
+                this.CopyBlittableFields();
             }
 
             this.Nodes = new List<Node>();
@@ -183,38 +256,28 @@
             }
         }
 
-        public void UpdateSyncData()
-        {
-            // Transform同期用データ
-            this.Transforms.Clear();
-            this.Entities.Clear();
-            foreach (var node in this.Nodes)
-            {
-                this.Transforms.Add(node.Transform);
-                this.Entities.Add(node.Entity);
-                foreach (var collider in this.ColliderGroups)
-                {
-                    this.Transforms.Add(collider.transform);
-                    this.Entities.Add(collider.Entity);
-                }
-            }
-        }
-
         public void Dispose()
         {
-            // コライダーの初期化
-            foreach (var collider in this.ColliderGroups)
+            if (this.ColliderGroups != null && this.ColliderGroups.Length > 0)
             {
-                collider.Dispose();
+                foreach (var collider in this.ColliderGroups)
+                {
+                    collider.Dispose();
+                }
+
+                if (this._colliderGroupInstanceIDs.IsCreated)
+                {
+                    this._colliderGroupInstanceIDs.Dispose();
+                }
             }
 
-            if (this.BlittableFieldsPtr != null)
+            if (this._blittableFieldsPtr != null)
             {
-                UnsafeUtility.Free(this.BlittableFieldsPtr, Allocator.Persistent);
-                this.BlittableFieldsPtr = null;
+                UnsafeUtility.Free(this._blittableFieldsPtr, Allocator.Persistent);
+                this._blittableFieldsPtr = null;
             }
 
-            Nodes?.Clear();
+            this.Nodes?.Clear();
             this.Nodes = null;
         }
 
@@ -224,26 +287,45 @@
 
         #region // Private Methods
 
-        void CopySpringBoneParam()
+        void CopyBlittableFields()
         {
-            *this.BlittableFieldsPtr = new BlittableFields
+            *this._blittableFieldsPtr = new BlittableFields
             {
                 StiffnessForce = this.m_stiffnessForce,
                 GravityPower = this.m_gravityPower,
                 GravityDir = this.m_gravityDir,
                 DragForce = this.m_dragForce,
                 HitRadius = this.m_hitRadius,
+
+                ColliderGroupInstanceIDs = (this._colliderGroupInstanceIDs.IsCreated)
+                    ? (int*) this._colliderGroupInstanceIDs.GetUnsafeReadOnlyPtr()
+                    : null,
+                ColliderGroupInstanceIDsLength = (this._colliderGroupInstanceIDs.IsCreated)
+                    ? this._colliderGroupInstanceIDs.Length
+                    : 0,
             };
         }
 
         void CreateNode(Transform trs, Node parent = null)
         {
-            var node = new Node(this, trs, parent);
+            var node = new Node(trs, this._blittableFieldsPtr, this._entityManager, this._centerEntity, parent);
             this.Nodes.Add(node);
             foreach (Transform child in trs)
             {
                 this.CreateNode(child, node);
             }
+        }
+
+        static T GetOrAddComponent<T>(GameObject obj)
+            where T : MonoBehaviour
+        {
+            var ret = obj.GetComponent<T>();
+            if (ret == null)
+            {
+                ret = obj.AddComponent<T>();
+            }
+
+            return ret;
         }
 
         #endregion // Private Methods

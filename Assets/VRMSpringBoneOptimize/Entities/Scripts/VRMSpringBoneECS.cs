@@ -29,10 +29,9 @@
         readonly List<VRMSpringBone> _springBones = new List<VRMSpringBone>();
 
         EntityManager _entityManager = null;
-        Entity _colliderIdentifyPrefab;
         Entity _sphereColliderPrefab;
 
-        #endregion // Private Fields
+        #endregion // Private Fields   
 
 
         // ----------------------------------------------------
@@ -49,24 +48,10 @@
 
             // Create Entity Prefab
             {
-                var archetype = this._entityManager.CreateArchetype(
-                    // Built-in ComponentData
-                    ComponentType.Create<Prefab>(),
-                    
-                    // Original ComponentData
-                    ComponentType.Create<ColliderIdentifyTag>());
-                this._colliderIdentifyPrefab = this._entityManager.CreateEntity(archetype);
-            }
-            {
                 // SphereCollider
                 var archetype = this._entityManager.CreateArchetype(
-                    // Built-in ComponentData
                     ComponentType.Create<Prefab>(),
-
-                    // Original ComponentData
-                    ComponentType.Create<ColliderIdentify>(),
-                    ComponentType.Create<ColliderGroup>(),
-                    ComponentType.Create<ColliderGroupBlittableFieldsPtr>());
+                    ComponentType.Create<SphereColliderTag>());
                 this._sphereColliderPrefab = this._entityManager.CreateEntity(archetype);
             }
 
@@ -107,10 +92,9 @@
                 return;
             }
 
-            springBone.Initialize();
+            springBone.Initialize(this._entityManager);
             this.CreateSphereColliderEntities(springBone);
             this.CreateSpringBoneEntities(springBone);
-            springBone.UpdateSyncData();
             this._springBones.Add(springBone);
         }
 
@@ -125,10 +109,9 @@
                     continue;
                 }
 
-                springBone.Initialize();
+                springBone.Initialize(this._entityManager);
                 this.CreateSphereColliderEntities(springBone);
                 this.CreateSpringBoneEntities(springBone);
-                springBone.UpdateSyncData();
                 this._springBones.Add(springBone);
             }
         }
@@ -159,28 +142,19 @@
                 return;
             }
 
-            // SphereColliderEntityが所属するVRMSpringBoneを把握するためのEntity
-            var colliderIdentify = this._entityManager.Instantiate(this._colliderIdentifyPrefab);
-            springBone.ColliderIdentifyEntity = colliderIdentify;
-
             var createSphereColliderEntities = new List<Entity>();
             foreach (var group in groups)
             {
                 if (!group.IsActive) continue;
-                
-                // SphereColliderEntityが所属するVRMSpringBoneColliderGroupを把握するためのEntity
-                var groupEntity = group.CreateEntity(this._entityManager);
+
+                var groupEntity = group.CreateEntity();
 
                 // SphereColliderEntityの生成
+                // ※こちらのEntityはNativeMultiHashMap生成時の長さの算出に使用する
                 for (var i = 0; i < group.Colliders.Length; i++)
                 {
                     var entity = this._entityManager.Instantiate(this._sphereColliderPrefab);
-                    this._entityManager.SetComponentData(
-                        entity, new ColliderIdentify {Entity = colliderIdentify});
-                    this._entityManager.SetComponentData(
-                        entity, new ColliderGroup {Entity = groupEntity});
-                    this._entityManager.SetComponentData(
-                        entity, new ColliderGroupBlittableFieldsPtr {Value = group.GetBlittableFieldsPtr(i)});
+                    this._entityManager.SetComponentData(entity, new SphereColliderTag());
                     createSphereColliderEntities.Add(entity);
                 }
             }
@@ -192,7 +166,7 @@
         {
             foreach (var node in springBone.Nodes)
             {
-                node.CreateEntity(this._entityManager);
+                node.CreateEntity();
             }
         }
 
@@ -201,12 +175,6 @@
             foreach (var colliderEntity in springBone.SphereColliderEntities)
             {
                 this.DestroyEntity(colliderEntity);
-            }
-
-            this.DestroyEntity(springBone.ColliderIdentifyEntity);
-            foreach (var node in springBone.Nodes)
-            {
-                this.DestroyEntity(node.Entity);
             }
         }
 
@@ -245,10 +213,19 @@
                 foreach (var node in springBone.Nodes)
                 {
                     var entity = node.Entity;
+                    var centerEntity = this._entityManager.GetComponentData<CenterEntity>(entity);
+                    
+                    var centerMatrix = Unity.Mathematics.float4x4.identity;
+                    if (this._entityManager.Exists(centerEntity.Entity))
+                    {
+                        var center = this._entityManager.GetComponentData<Center>(centerEntity.Entity);
+                        centerMatrix = center.Value;
+                    }
+                    
                     var currentTail = this._entityManager.GetComponentData<CurrentTail>(entity);
                     var prevTail = this._entityManager.GetComponentData<PrevTail>(entity);
-                    var currentTailVal = currentTail.Value;
-                    var prevTailVal = prevTail.Value;
+                    var currentTailVal = Unity.Mathematics.math.transform(centerMatrix, currentTail.Value);
+                    var prevTailVal = Unity.Mathematics.math.transform(centerMatrix, prevTail.Value);
 
                     var param = this._entityManager.GetComponentData<SpringBoneBlittableFieldsPtr>(entity).Value;
                     var radius = param->HitRadius;
@@ -256,7 +233,7 @@
                     Gizmos.DrawLine(currentTailVal, prevTailVal);
                     Gizmos.DrawWireSphere(prevTailVal, radius);
 
-                    var position = this._entityManager.GetComponentData<Position>(entity).Value;
+                    var position = node.Transform.position;
                     Gizmos.color = this._ecsSpringBoneColor;
                     Gizmos.DrawLine(currentTailVal, position);
                     Gizmos.DrawWireSphere(currentTailVal, radius);
@@ -285,27 +262,20 @@
 
                 // ECS CollisionGroup
                 Gizmos.matrix = Matrix4x4.identity;
-                var colliderEntities = springBone.SphereColliderEntities;
-                if (colliderEntities == null || colliderEntities.Count <= 0)
+                foreach (var colliderGroup in springBone.ColliderGroups)
                 {
-                    continue;
-                }
-
-                foreach (var colliderEntity in colliderEntities)
-                {
-                    var groupEntity = this._entityManager
-                        .GetComponentData<ColliderGroup>(colliderEntity).Entity;
-                    var colliderGroupPosition = this._entityManager
-                        .GetComponentData<Position>(groupEntity).Value;
-                    var colliderGroupRotation = this._entityManager
-                        .GetComponentData<ColliderGroupRotation>(groupEntity).Value;
-                    var sphereColliderParam = this._entityManager
-                        .GetComponentData<ColliderGroupBlittableFieldsPtr>(colliderEntity).GetValue;
-                    var mat = new Unity.Mathematics.float4x4(colliderGroupRotation, colliderGroupPosition);
-                    Gizmos.color = this._ecsColliderColor;
-                    Gizmos.DrawWireSphere(
-                        Unity.Mathematics.math.transform(mat, sphereColliderParam.Offset),
-                        sphereColliderParam.Radius);
+                    var trs = colliderGroup.transform;
+                    var entity = colliderGroup.Entity;
+                    var mat = new Unity.Mathematics.float4x4(trs.rotation, trs.position);
+                    var blittableFields = this._entityManager.GetComponentData<ColliderGroupBlittableFieldsPtr>(entity);
+                    for (var i = 0; i < blittableFields.Length; i++)
+                    {
+                        Gizmos.color = this._ecsColliderColor;
+                        var field = blittableFields.GetBlittableFields(i);
+                        Gizmos.DrawWireSphere(
+                            Unity.Mathematics.math.transform(mat, field.Offset),
+                            field.Radius);
+                    }
                 }
             }
         }

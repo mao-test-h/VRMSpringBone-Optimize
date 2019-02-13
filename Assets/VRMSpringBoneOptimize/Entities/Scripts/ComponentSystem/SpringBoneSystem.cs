@@ -1,15 +1,14 @@
 ﻿namespace VRM.Optimize.Entities
 {
     using UnityEngine;
+    using UnityEngine.Jobs;
     using Unity.Jobs;
     using Unity.Collections;
-    using Unity.Collections.LowLevel.Unsafe;
     using Unity.Entities;
     using Unity.Mathematics;
     using Unity.Burst;
 
-    [UpdateInGroup(typeof(SpringBoneUpdateInGroup))]
-    [UpdateAfter(typeof(SyncTransformSystem))]
+    [UpdateAfter(typeof(UnityEngine.Experimental.PlayerLoop.PreLateUpdate.ScriptRunBehaviourLateUpdate))]
     public sealed class SpringBoneSystem : JobComponentSystem
     {
         // ------------------------------
@@ -23,8 +22,6 @@
             public float Radius;
         }
 
-        const int DefaultInnerloopBatchCount = 16;
-
         #endregion // Defines
 
         // ------------------------------
@@ -32,58 +29,54 @@
         #region // Jobs
 
         [BurstCompile]
-        struct SetColliderHashJob : IJobParallelFor
+        struct UpdateColliderHashJob : IJobParallelForTransform
         {
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderIdentify> ColliderIdentifies;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderGroup> ColliderGroups;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderGroupBlittableFieldsPtr> ColliderGroupBlittableFieldsPtr;
-            [ReadOnly] public ComponentDataFromEntity<Position> ColliderGroupPosition;
-            [ReadOnly] public ComponentDataFromEntity<ColliderGroupRotation> ColliderGroupRotation;
-            public NativeMultiHashMap<Entity, SphereCollider>.Concurrent ColliderHashMap;
+            [ReadOnly] public EntityArray Entities;
+            [ReadOnly] public ComponentDataFromEntity<ColliderGroupInstanceID> ColliderGroupInstanceIDs;
+            [ReadOnly] public ComponentDataFromEntity<ColliderGroupBlittableFieldsPtr> ColliderGroupBlittableFieldsPtr;
+            public NativeMultiHashMap<int, SphereCollider>.Concurrent ColliderHashMap;
 
-            public void Execute(int index)
+            void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
             {
-                var mat = new float4x4(
-                    this.ColliderGroupRotation[this.ColliderGroups[index].Entity].Value,
-                    this.ColliderGroupPosition[this.ColliderGroups[index].Entity].Value);
-                var fields = this.ColliderGroupBlittableFieldsPtr[index].GetValue;
-                var collider = new SphereCollider
+                var entity = this.Entities[index];
+                var mat = new float4x4(trsAccess.rotation, trsAccess.position);
+                var fields = this.ColliderGroupBlittableFieldsPtr[entity];
+                for (var i = 0; i < fields.Length; i++)
                 {
-                    Position = math.transform(mat, fields.Offset),
-                    Radius = fields.Radius,
-                };
-                this.ColliderHashMap.Add(this.ColliderIdentifies[index].Entity, collider);
+                    var blittableFields = fields.GetBlittableFields(i);
+                    var collider = new SphereCollider
+                    {
+                        Position = math.transform(mat, blittableFields.Offset),
+                        Radius = blittableFields.Radius,
+                    };
+                    this.ColliderHashMap.Add(this.ColliderGroupInstanceIDs[entity].Value, collider);
+                }
             }
         }
 
         [BurstCompile]
-        struct CopyParentJob : IJobParallelFor
+        struct UpdateRotationJob : IJobParallelForTransform
         {
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<Position> Positions;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<Parent> Parents;
-            [ReadOnly] public ComponentDataFromEntity<CurrentTail> ParentCurrentTails;
-            [ReadOnly] public ComponentDataFromEntity<Rotation> ParentRotations;
-            [WriteOnly] public NativeArray<Position> CopyPositions;
-            [WriteOnly] public NativeArray<Rotation> CopyParentRotations;
+            [ReadOnly] public EntityArray Entities;
+            [NativeDisableParallelForRestriction] public ComponentDataFromEntity<Rotation> Rotations;
 
-            public void Execute(int index)
+            void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
             {
-                var parentEntity = this.Parents[index].Entity;
-                var position = this.Positions[index].Value;
-                if (this.ParentCurrentTails.Exists(parentEntity))
-                {
-                    position = this.ParentCurrentTails[parentEntity].Value;
-                }
+                var entity = this.Entities[index];
+                this.Rotations[entity] = new Rotation {Value = trsAccess.rotation};
+            }
+        }
 
-                this.CopyPositions[index] = new Position {Value = position};
+        [BurstCompile]
+        struct UpdateCenterJob : IJobParallelForTransform
+        {
+            [ReadOnly] public EntityArray Entities;
+            [NativeDisableParallelForRestriction] public ComponentDataFromEntity<Center> Centers;
 
-                var parentRotation = quaternion.identity;
-                if (this.ParentRotations.Exists(parentEntity))
-                {
-                    parentRotation = this.ParentRotations[parentEntity].Value;
-                }
-
-                this.CopyParentRotations[index] = new Rotation {Value = parentRotation};
+            void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
+            {
+                var entity = this.Entities[index];
+                this.Centers[entity] = new Center {Value = new float4x4(trsAccess.rotation, trsAccess.position)};
             }
         }
 
@@ -91,36 +84,65 @@
         /// The base algorithm is http://rocketjump.skr.jp/unity3d/109/ of @ricopin416
         /// </summary>
         [BurstCompile]
-        struct LogicJob : IJobProcessComponentDataWithEntity<CurrentTail, PrevTail, Rotation>
+        struct LogicJob : IJobParallelForTransform
         {
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<Position> Positions;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<Rotation> ParentRotations;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<ColliderIdentify> ColliderIdentifies;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<SpringBoneBlittableFieldsPtr> SpringBoneBlittableFieldsPtr;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<Length> Lengths;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<LocalRotation> LocalRotations;
-            [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<BoneAxis> BoneAxes;
-            [ReadOnly] public NativeMultiHashMap<Entity, SphereCollider> ColliderHashMap;
+            [ReadOnly] public EntityArray Entities;
+
+            [ReadOnly] public ComponentDataFromEntity<SpringBoneBlittableFieldsPtr> SpringBoneBlittableFieldsPtr;
+            [ReadOnly] public ComponentDataFromEntity<Length> Lengths;
+            [ReadOnly] public ComponentDataFromEntity<LocalRotation> LocalRotations;
+            [ReadOnly] public ComponentDataFromEntity<BoneAxis> BoneAxes;
+            [ReadOnly] public ComponentDataFromEntity<ParentEntity> ParentEntities;
+            [ReadOnly] public ComponentDataFromEntity<Rotation> Rotations;
+            [ReadOnly] public ComponentDataFromEntity<Center> Centers;
+            [ReadOnly] public ComponentDataFromEntity<CenterEntity> CenterEntities;
+
+            [NativeDisableParallelForRestriction] public ComponentDataFromEntity<CurrentTail> CurrentTails;
+            [NativeDisableParallelForRestriction] public ComponentDataFromEntity<PrevTail> PrevTails;
+
+            [ReadOnly] public NativeMultiHashMap<int, SphereCollider> ColliderHashMap;
             [ReadOnly] public float DeltaTime;
 
-            public void Execute(Entity entity, int index, ref CurrentTail currentTailRef, ref PrevTail prevTailRef,
-                ref Rotation rotationRef)
+            unsafe void IJobParallelForTransform.Execute(int index, TransformAccess trsAccess)
             {
-                var fields = this.SpringBoneBlittableFieldsPtr[index].GetValue;
-                var vecLength = this.Lengths[index].Value;
-                var localRotation = this.LocalRotations[index].Value;
-                var boneAxis = this.BoneAxes[index].Value;
+                var entity = this.Entities[index];
 
-                var parentRotation = this.ParentRotations[index].Value;
-                var position = this.Positions[index].Value;
+                // フィールドが無いものについては回転値参照用のダミーなので無視
+                var fieldsPtr = this.SpringBoneBlittableFieldsPtr[entity].Value;
+                if (fieldsPtr == null) return;
+
+                var fields = *fieldsPtr;
+                var vecLength = this.Lengths[entity].Value;
+                var localRotation = this.LocalRotations[entity].Value;
+                var boneAxis = this.BoneAxes[entity].Value;
+
+                float3 position = trsAccess.position;
+                var parentRotation = quaternion.identity;
+                if (this.ParentEntities.Exists(entity))
+                {
+                    var parentEntity = this.ParentEntities[entity].Entity;
+                    parentRotation = this.Rotations[parentEntity].Value;
+                }
 
                 // 物理演算で用いるパラメータの事前計算
-                var radius = fields.HitRadius;
                 var stiffnessForce = fields.StiffnessForce * this.DeltaTime;
                 var dragForce = fields.DragForce;
                 var external = fields.GravityDir * (fields.GravityPower * this.DeltaTime);
-                var currentTail = currentTailRef.Value;
-                var prevTail = prevTailRef.Value;
+
+                var centerMatrix = float4x4.identity;
+                var centerInvertMatrix = float4x4.identity;
+                if (this.CenterEntities.Exists(entity))
+                {
+                    var centerEntity = this.CenterEntities[entity].Entity;
+                    if (this.Centers.Exists(centerEntity))
+                    {
+                        centerMatrix = this.Centers[centerEntity].Value;
+                        centerInvertMatrix = math.inverse(centerMatrix);
+                    }
+                }
+
+                var currentTail = math.transform(centerMatrix, this.CurrentTails[entity].Value);
+                var prevTail = math.transform(centerMatrix, this.PrevTails[entity].Value);
 
                 // verlet積分で次の位置を計算
                 var nextTail = currentTail
@@ -135,42 +157,44 @@
                 nextTail = position + math.normalize(nextTail - position) * vecLength;
 
                 // Collisionで移動
-                var colliderIdentifyEntity = this.ColliderIdentifies[index].Entity;
-                nextTail = this.Collision(nextTail, radius, position, vecLength, colliderIdentifyEntity);
+                this.Collision(ref nextTail, ref position, ref vecLength, ref fields);
 
-                currentTailRef.Value = nextTail;
-                prevTailRef.Value = currentTail;
+                this.CurrentTails[entity] = new CurrentTail {Value = math.transform(centerInvertMatrix, nextTail)};
+                this.PrevTails[entity] = new PrevTail {Value = math.transform(centerInvertMatrix, currentTail)};
 
                 // 回転を適用
-                rotationRef.Value = this.ApplyRotation(nextTail, parentRotation, localRotation, position, boneAxis);
+                trsAccess.rotation = this.ApplyRotation(ref nextTail, ref parentRotation, ref localRotation,
+                    ref position, ref boneAxis);
             }
 
-            quaternion ApplyRotation(float3 nextTail, quaternion parentRotation, quaternion localRotation,
-                float3 position, float3 boneAxis)
+            quaternion ApplyRotation(ref float3 nextTail, ref quaternion parentRotation, ref quaternion localRotation,
+                ref float3 position, ref float3 boneAxis)
             {
                 var rotation = math.mul(parentRotation, localRotation);
                 return Quaternion.FromToRotation(math.mul(rotation, boneAxis), nextTail - position) * rotation;
             }
 
-            float3 Collision(float3 nextTail, float radius, float3 position, float vecLength,
-                Entity colliderIdentifyEntity)
+            void Collision(ref float3 nextTail, ref float3 position, ref float vecLength,
+                ref VRMSpringBone.BlittableFields blittableFields)
             {
-                for (var success =
-                        this.ColliderHashMap.TryGetFirstValue(colliderIdentifyEntity, out var collider,
-                            out var iterator);
-                    success;
-                    success = this.ColliderHashMap.TryGetNextValue(out collider, ref iterator))
+                var hitRadius = blittableFields.HitRadius;
+                for (var i = 0; i < blittableFields.ColliderGroupInstanceIDsLength; i++)
                 {
-                    var r = radius + collider.Radius;
-                    if (!(math.lengthsq(nextTail - collider.Position) <= (r * r))) continue;
-                    // ヒット。Colliderの半径方向に押し出す
-                    var normal = math.normalize(nextTail - collider.Position);
-                    var posFromCollider = collider.Position + normal * (radius + collider.Radius);
-                    // 長さをboneLengthに強制
-                    nextTail = position + math.normalize(posFromCollider - position) * vecLength;
+                    var instanceID = blittableFields.GetColliderGroupInstanceID(i);
+                    for (var success =
+                            this.ColliderHashMap.TryGetFirstValue(instanceID, out var collider, out var iterator);
+                        success;
+                        success = this.ColliderHashMap.TryGetNextValue(out collider, ref iterator))
+                    {
+                        var r = hitRadius + collider.Radius;
+                        if (!(math.lengthsq(nextTail - collider.Position) <= (r * r))) continue;
+                        // ヒット。Colliderの半径方向に押し出す
+                        var normal = math.normalize(nextTail - collider.Position);
+                        var posFromCollider = collider.Position + normal * (hitRadius + collider.Radius);
+                        // 長さをboneLengthに強制
+                        nextTail = position + math.normalize(posFromCollider - position) * vecLength;
+                    }
                 }
-
-                return nextTail;
             }
         }
 
@@ -181,10 +205,13 @@
         #region // Private Fields
 
         // ComponentGroup
+        ComponentGroup _colliderGroup;
         ComponentGroup _sphereColliderGroup;
+
+        ComponentGroup _updateCenterGroup;
         ComponentGroup _spriteBoneGroup;
 
-        NativeMultiHashMap<Entity, SphereCollider> _colliderHashMap;
+        NativeMultiHashMap<int, SphereCollider> _colliderHashMap;
 
         #endregion // Private Fields
 
@@ -195,21 +222,28 @@
 
         protected override void OnCreateManager()
         {
-            this._sphereColliderGroup = base.GetComponentGroup(
-                ComponentType.ReadOnly<ColliderIdentify>(),
-                ComponentType.ReadOnly<ColliderGroup>(),
+            this._colliderGroup = base.GetComponentGroup(
+                typeof(Transform),
+                ComponentType.ReadOnly<ColliderGroupInstanceID>(),
                 ComponentType.ReadOnly<ColliderGroupBlittableFieldsPtr>());
 
+            this._sphereColliderGroup = base.GetComponentGroup(
+                ComponentType.ReadOnly<SphereColliderTag>());
+
+            this._updateCenterGroup = base.GetComponentGroup(
+                typeof(Transform),
+                ComponentType.Create<Center>());
+
             this._spriteBoneGroup = base.GetComponentGroup(
-                ComponentType.ReadOnly<Position>(),
-                ComponentType.ReadOnly<Parent>(),
-                ComponentType.ReadOnly<ColliderIdentify>(),
+                typeof(Transform),
                 ComponentType.ReadOnly<SpringBoneBlittableFieldsPtr>(),
                 ComponentType.ReadOnly<Length>(),
                 ComponentType.ReadOnly<LocalRotation>(),
                 ComponentType.ReadOnly<BoneAxis>(),
-                ComponentType.Create<CurrentTail>(),
+                ComponentType.ReadOnly<ParentEntity>(),
+                ComponentType.ReadOnly<CenterEntity>(),
                 ComponentType.Create<Rotation>(),
+                ComponentType.Create<CurrentTail>(),
                 ComponentType.Create<PrevTail>());
         }
 
@@ -219,8 +253,68 @@
         {
             this.DisposeBuffers();
             var handle = inputDeps;
-            this.SetColliderHashJobHandle(ref handle);
-            this.SetLogicJobHandle(ref handle);
+
+            var isUpdateCenter = this._updateCenterGroup.CalculateLength() > 0;
+            var handles = new NativeArray<JobHandle>(isUpdateCenter ? 3 : 2, Allocator.Temp);
+
+            // コライダーの更新
+            {
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._sphereColliderGroup.CalculateLength(), Allocator.TempJob);
+                handles[0] = new UpdateColliderHashJob
+                {
+                    Entities = this._colliderGroup.GetEntityArray(),
+                    ColliderGroupInstanceIDs = base.GetComponentDataFromEntity<ColliderGroupInstanceID>(true),
+                    ColliderGroupBlittableFieldsPtr =
+                        base.GetComponentDataFromEntity<ColliderGroupBlittableFieldsPtr>(true),
+                    ColliderHashMap = this._colliderHashMap.ToConcurrent(),
+                }.Schedule(this._colliderGroup.GetTransformAccessArray());
+            }
+
+            // 回転値の更新
+            {
+                handles[1] = new UpdateRotationJob
+                {
+                    Entities = this._spriteBoneGroup.GetEntityArray(),
+                    Rotations = base.GetComponentDataFromEntity<Rotation>(),
+                }.Schedule(this._spriteBoneGroup.GetTransformAccessArray());
+            }
+
+            // m_centerの更新
+            if (isUpdateCenter)
+            {
+                handles[2] = new UpdateCenterJob
+                {
+                    Entities = this._updateCenterGroup.GetEntityArray(),
+                    Centers = base.GetComponentDataFromEntity<Center>(),
+                }.Schedule(this._updateCenterGroup.GetTransformAccessArray());
+            }
+
+            // 物理演算
+            {
+                var preHandle = JobHandle.CombineDependencies(handle, JobHandle.CombineDependencies(handles));
+                handle = new LogicJob
+                {
+                    Entities = this._spriteBoneGroup.GetEntityArray(),
+
+                    SpringBoneBlittableFieldsPtr = base.GetComponentDataFromEntity<SpringBoneBlittableFieldsPtr>(true),
+                    Lengths = base.GetComponentDataFromEntity<Length>(true),
+                    LocalRotations = base.GetComponentDataFromEntity<LocalRotation>(true),
+                    BoneAxes = base.GetComponentDataFromEntity<BoneAxis>(true),
+                    ParentEntities = base.GetComponentDataFromEntity<ParentEntity>(true),
+                    Rotations = base.GetComponentDataFromEntity<Rotation>(true),
+
+                    Centers = base.GetComponentDataFromEntity<Center>(true),
+                    CenterEntities = base.GetComponentDataFromEntity<CenterEntity>(true),
+
+                    CurrentTails = base.GetComponentDataFromEntity<CurrentTail>(),
+                    PrevTails = base.GetComponentDataFromEntity<PrevTail>(),
+
+                    DeltaTime = Time.deltaTime,
+                    ColliderHashMap = this._colliderHashMap,
+                }.Schedule(_spriteBoneGroup.GetTransformAccessArray(), preHandle);
+            }
+            handles.Dispose();
             return handle;
         }
 
@@ -236,98 +330,6 @@
             {
                 this._colliderHashMap.Dispose();
             }
-        }
-
-        unsafe NativeArray<T> GetCopyComponentDataArray<T>(
-            JobHandle* handlePtr, JobHandle handle, int length, ComponentGroup group,
-            int innerloopBatchCount = DefaultInnerloopBatchCount)
-            where T : struct, IComponentData
-        {
-            var array = new NativeArray<T>(length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            *handlePtr = new CopyComponentData<T>
-            {
-                Source = group.GetComponentDataArray<T>(),
-                Results = array,
-            }.Schedule(length, innerloopBatchCount, handle);
-            return array;
-        }
-
-        unsafe void SetColliderHashJobHandle(ref JobHandle handleRef)
-        {
-            var groupLength = this._sphereColliderGroup.CalculateLength();
-            var handles = new NativeArray<JobHandle>(3, Allocator.Temp);
-            var handlesPtr = (JobHandle*) handles.GetUnsafePtr();
-            var colliderIdentifies = this.GetCopyComponentDataArray<ColliderIdentify>(
-                handlesPtr + 0, handleRef, groupLength, this._sphereColliderGroup);
-            var colliderGroups = this.GetCopyComponentDataArray<ColliderGroup>(
-                handlesPtr + 1, handleRef, groupLength, this._sphereColliderGroup);
-            var colliderGroupBlittableFieldsPtr = this.GetCopyComponentDataArray<ColliderGroupBlittableFieldsPtr>(
-                handlesPtr + 2, handleRef, groupLength, this._sphereColliderGroup);
-            handleRef = JobHandle.CombineDependencies(handles);
-            handles.Dispose();
-
-            // HashMapの設定
-            this._colliderHashMap = new NativeMultiHashMap<Entity, SphereCollider>(groupLength, Allocator.TempJob);
-            handleRef = new SetColliderHashJob
-            {
-                ColliderIdentifies = colliderIdentifies,
-                ColliderGroups = colliderGroups,
-                ColliderGroupBlittableFieldsPtr = colliderGroupBlittableFieldsPtr,
-                ColliderGroupPosition = base.GetComponentDataFromEntity<Position>(true),
-                ColliderGroupRotation = base.GetComponentDataFromEntity<ColliderGroupRotation>(true),
-                ColliderHashMap = this._colliderHashMap.ToConcurrent(),
-            }.Schedule(groupLength, DefaultInnerloopBatchCount, handleRef);
-        }
-
-        unsafe void SetLogicJobHandle(ref JobHandle handleRef)
-        {
-            var groupLength = this._spriteBoneGroup.CalculateLength();
-
-            var handles = new NativeArray<JobHandle>(7, Allocator.Temp);
-            var handlesPtr = (JobHandle*) handles.GetUnsafePtr();
-            var positions = this.GetCopyComponentDataArray<Position>(
-                handlesPtr + 0, handleRef, groupLength, this._spriteBoneGroup);
-            var parents = this.GetCopyComponentDataArray<Parent>(
-                handlesPtr + 1, handleRef, groupLength, this._spriteBoneGroup);
-            var colliderIdentifies = this.GetCopyComponentDataArray<ColliderIdentify>(
-                handlesPtr + 2, handleRef, groupLength, this._spriteBoneGroup);
-            var springBoneBlittableFieldsPtr = this.GetCopyComponentDataArray<SpringBoneBlittableFieldsPtr>(
-                handlesPtr + 3, handleRef, groupLength, this._spriteBoneGroup);
-            var lengths = this.GetCopyComponentDataArray<Length>(
-                handlesPtr + 4, handleRef, groupLength, this._spriteBoneGroup);
-            var localRotations = this.GetCopyComponentDataArray<LocalRotation>(
-                handlesPtr + 5, handleRef, groupLength, this._spriteBoneGroup);
-            var boneAxes = this.GetCopyComponentDataArray<BoneAxis>(
-                handlesPtr + 6, handleRef, groupLength, this._spriteBoneGroup);
-            handleRef = JobHandle.CombineDependencies(handles);
-            handles.Dispose();
-
-            // データのコピー
-            var copyPositions = new NativeArray<Position>(groupLength, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            var copyParentRotations = new NativeArray<Rotation>(groupLength, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            handleRef = new CopyParentJob()
-            {
-                Positions = positions,
-                Parents = parents,
-                ParentCurrentTails = base.GetComponentDataFromEntity<CurrentTail>(true),
-                ParentRotations = base.GetComponentDataFromEntity<Rotation>(true),
-                CopyPositions =  copyPositions,
-                CopyParentRotations = copyParentRotations,
-            }.Schedule(groupLength, DefaultInnerloopBatchCount, handleRef);
-            
-            // ロジックの実行
-            handleRef = new LogicJob
-            {
-                Positions = copyPositions,
-                ParentRotations = copyParentRotations,
-                ColliderIdentifies = colliderIdentifies,
-                SpringBoneBlittableFieldsPtr = springBoneBlittableFieldsPtr,
-                Lengths = lengths,
-                LocalRotations = localRotations,
-                BoneAxes = boneAxes,
-                ColliderHashMap = this._colliderHashMap,
-                DeltaTime = Time.deltaTime,
-            }.Schedule(this, handleRef);
         }
 
         #endregion // Private Methods
