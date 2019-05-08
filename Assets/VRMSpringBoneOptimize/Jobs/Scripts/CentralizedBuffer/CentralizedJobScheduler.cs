@@ -126,14 +126,26 @@
         {
             if (this._springBoneJobData.Length <= 0) return;
             
-            if (this._colliderHashMap.IsCreated)
+            if (!this._colliderHashMap.IsCreated)
             {
-                this._colliderHashMap.Dispose();
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._colliderHashMapLength, Allocator.Persistent);
+            }
+            else
+            {
+                this._colliderHashMap.Clear();
             }
 
-            // コライダーの更新
-            this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                this._colliderHashMapLength, Allocator.TempJob);
+            if (this._colliderHashMap.Capacity != this._colliderHashMapLength)
+            {
+                this._colliderHashMap.Dispose();
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._colliderHashMapLength, Allocator.Persistent);
+            }
+
+            
             var updateColliderHashJobHandle = new UpdateColliderHashJob
             {
                 GroupParams = this._colliderGroupJobData.GroupParams,
@@ -156,7 +168,7 @@
                 VariableNodeParams = this._springBoneJobData.VariableNodeParams,
             }.Schedule(this._springBoneJobData.TransformAccessArray,
                 JobHandle.CombineDependencies(updateColliderHashJobHandle, updateParentRotationJobHandle));
-            
+
             JobHandle.ScheduleBatchedJobs();
         }
         

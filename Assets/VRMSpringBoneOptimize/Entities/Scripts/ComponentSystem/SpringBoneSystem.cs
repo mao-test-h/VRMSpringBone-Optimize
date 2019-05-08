@@ -251,16 +251,32 @@
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            this.DisposeBuffers();
             var handle = inputDeps;
 
             var isUpdateCenter = this._updateCenterGroup.CalculateLength() > 0;
             var handles = new NativeArray<JobHandle>(isUpdateCenter ? 3 : 2, Allocator.Temp);
+            if (!this._colliderHashMap.IsCreated)
+            {
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._sphereColliderGroup.CalculateLength(), Allocator.Persistent);
+            }
+            else
+            {
+                this._colliderHashMap.Clear();
+            }
+
+            if (this._colliderHashMap.Capacity != this._sphereColliderGroup.CalculateLength())
+            {
+                this._colliderHashMap.Dispose();
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._sphereColliderGroup.CalculateLength(), Allocator.Persistent);
+            }
 
             // コライダーの更新
             {
-                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                    this._sphereColliderGroup.CalculateLength(), Allocator.TempJob);
+                
                 handles[0] = new UpdateColliderHashJob
                 {
                     Entities = this._colliderGroup.GetEntityArray(),
