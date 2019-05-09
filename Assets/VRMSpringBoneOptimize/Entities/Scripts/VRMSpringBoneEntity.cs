@@ -8,7 +8,7 @@
     using Unity.Collections.LowLevel.Unsafe;
     using Unity.Mathematics;
 
-    public sealed unsafe class VRMSpringBone : MonoBehaviour, System.IDisposable
+    public sealed unsafe class VRMSpringBoneEntity : MonoBehaviour, System.IDisposable
     {
         // ------------------------------
 
@@ -162,7 +162,7 @@
         public List<Transform> RootBones = new List<Transform>();
 
         [Header("Collider")] [Range(0, 0.5f)] public float m_hitRadius = 0.02f;
-        public VRMSpringBoneColliderGroup[] ColliderGroups;
+        public VRMSpringBoneColliderGroupEntity[] ColliderGroups;
 
         #endregion // Fields(Editable)
 

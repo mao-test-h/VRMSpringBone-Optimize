@@ -44,12 +44,12 @@
         NativeArray<quaternion> _parentRotations;
 
         // Center
-        readonly List<VRMSpringBone> _updateCenterBones = new List<VRMSpringBone>();
+        readonly List<VRMSpringBoneJobs> _updateCenterBones = new List<VRMSpringBoneJobs>();
 
         // Buffers
         readonly List<CentralizedBuffer> _currentBuffers = new List<CentralizedBuffer>();
-        readonly List<VRMSpringBone.Node> _allNodes = new List<VRMSpringBone.Node>();
-        readonly List<VRMSpringBoneColliderGroup> _allColliderGroups = new List<VRMSpringBoneColliderGroup>();
+        readonly List<VRMSpringBoneJobs.Node> _allNodes = new List<VRMSpringBoneJobs.Node>();
+        readonly List<VRMSpringBoneColliderGroupJobs> _allColliderGroups = new List<VRMSpringBoneColliderGroupJobs>();
 #if UNITY_EDITOR && ENABLE_DEBUG
         readonly List<VRMSpringBone> _currentAllBones = new List<VRMSpringBone>();
 #endif
@@ -126,26 +126,16 @@
         {
             if (this._springBoneJobData.Length <= 0) return;
             
-            if (!this._colliderHashMap.IsCreated)
-            {
-                // コライダーの初期化
-                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                    this._colliderHashMapLength, Allocator.Persistent);
-            }
-            else
-            {
-                this._colliderHashMap.Clear();
-            }
-
-            if (this._colliderHashMap.Capacity != this._colliderHashMapLength)
+            if (this._colliderHashMap.IsCreated)
             {
                 this._colliderHashMap.Dispose();
-                // コライダーの初期化
-                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                    this._colliderHashMapLength, Allocator.Persistent);
+                
             }
 
-            
+            // コライダーの初期化
+            this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                this._colliderHashMapLength, Allocator.TempJob);
+
             var updateColliderHashJobHandle = new UpdateColliderHashJob
             {
                 GroupParams = this._colliderGroupJobData.GroupParams,

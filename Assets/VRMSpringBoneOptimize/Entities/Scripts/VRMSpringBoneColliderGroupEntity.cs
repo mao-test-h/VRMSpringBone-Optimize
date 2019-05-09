@@ -6,7 +6,7 @@
     using Unity.Collections.LowLevel.Unsafe;
     using Unity.Mathematics;
 
-    public sealed unsafe class VRMSpringBoneColliderGroup : MonoBehaviour, System.IDisposable
+    public sealed unsafe class VRMSpringBoneColliderGroupEntity : MonoBehaviour, System.IDisposable
     {
         // ------------------------------
 

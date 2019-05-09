@@ -175,7 +175,7 @@
             }
 
             void Collision(ref float3 nextTail, ref float3 position, ref float vecLength,
-                ref VRMSpringBone.BlittableFields blittableFields)
+                ref VRMSpringBoneEntity.BlittableFields blittableFields)
             {
                 var hitRadius = blittableFields.HitRadius;
                 for (var i = 0; i < blittableFields.ColliderGroupInstanceIDsLength; i++)
