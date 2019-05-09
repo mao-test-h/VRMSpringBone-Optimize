@@ -6,8 +6,8 @@
     using UnityEditor;
     using VRMSpringBone = VRM.VRMSpringBone;
 #if ENABLE_JOB_SPRING_BONE
-    using JobVRMSpringBone = VRM.Optimize.Jobs.VRMSpringBoneJobs;
-    using JobVRMSpringBoneColliderGroup = VRM.Optimize.Jobs.VRMSpringBoneColliderGroupJobs;
+    using JobVRMSpringBone = VRM.Optimize.Jobs.VRMSpringBoneJob;
+    using JobVRMSpringBoneColliderGroup = VRM.Optimize.Jobs.VRMSpringBoneColliderGroupJob;
 #endif
 #if ENABLE_ECS_SPRING_BONE
     using EntitiesVRMSpringBone = VRM.Optimize.Entities.VRMSpringBoneEntity;

@@ -44,12 +44,12 @@
         NativeArray<quaternion> _parentRotations;
 
         // Center
-        readonly List<VRMSpringBoneJobs> _updateCenterBones = new List<VRMSpringBoneJobs>();
+        readonly List<VRMSpringBoneJob> _updateCenterBones = new List<VRMSpringBoneJob>();
 
         // Buffers
         readonly List<CentralizedBuffer> _currentBuffers = new List<CentralizedBuffer>();
-        readonly List<VRMSpringBoneJobs.Node> _allNodes = new List<VRMSpringBoneJobs.Node>();
-        readonly List<VRMSpringBoneColliderGroupJobs> _allColliderGroups = new List<VRMSpringBoneColliderGroupJobs>();
+        readonly List<VRMSpringBoneJob.Node> _allNodes = new List<VRMSpringBoneJob.Node>();
+        readonly List<VRMSpringBoneColliderGroupJob> _allColliderGroups = new List<VRMSpringBoneColliderGroupJob>();
 #if UNITY_EDITOR && ENABLE_DEBUG
         readonly List<VRMSpringBone> _currentAllBones = new List<VRMSpringBone>();
 #endif

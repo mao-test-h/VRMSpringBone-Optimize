@@ -5,7 +5,7 @@
     using Unity.Mathematics;
     using IDisposable = System.IDisposable;
 
-    public sealed class VRMSpringBoneColliderGroupJobs : MonoBehaviour, IDisposable
+    public sealed class VRMSpringBoneColliderGroupJob : MonoBehaviour, IDisposable
     {
         // ------------------------------
 
