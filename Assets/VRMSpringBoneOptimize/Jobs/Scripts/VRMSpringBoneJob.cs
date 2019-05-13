@@ -9,7 +9,7 @@
     using VRM.Optimize;
     using IDisposable = System.IDisposable;
 
-    public sealed unsafe class VRMSpringBone : MonoBehaviour, IDisposable
+    public sealed unsafe class VRMSpringBoneJob : MonoBehaviour, IDisposable
     {
         // ------------------------------
 
@@ -84,7 +84,7 @@
         public List<Transform> RootBones = new List<Transform>();
 
         [Header("Collider")] [Range(0, 0.5f)] public float m_hitRadius = 0.02f;
-        public VRMSpringBoneColliderGroup[] ColliderGroups;
+        public VRMSpringBoneColliderGroupJob[] ColliderGroups;
 
         #endregion // Fields(Editable)
 

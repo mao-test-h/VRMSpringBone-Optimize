@@ -12,7 +12,7 @@
     {
         // ------------------------------
 
-        #region // Private Fields(Editable) 
+        #region // Private Fields(Editable)
 
         [Header("【Settings】")] [SerializeField]
         bool _isAutoGetBuffers = false;
@@ -24,7 +24,7 @@
         [SerializeField] Color _originalColliderColor = Color.green;
 #endif
 
-        #endregion // Private Fields(Editable) 
+        #endregion // Private Fields(Editable)
 
         // ------------------------------
 
@@ -44,12 +44,12 @@
         NativeArray<quaternion> _parentRotations;
 
         // Center
-        readonly List<VRMSpringBone> _updateCenterBones = new List<VRMSpringBone>();
+        readonly List<VRMSpringBoneJob> _updateCenterBones = new List<VRMSpringBoneJob>();
 
         // Buffers
         readonly List<CentralizedBuffer> _currentBuffers = new List<CentralizedBuffer>();
-        readonly List<VRMSpringBone.Node> _allNodes = new List<VRMSpringBone.Node>();
-        readonly List<VRMSpringBoneColliderGroup> _allColliderGroups = new List<VRMSpringBoneColliderGroup>();
+        readonly List<VRMSpringBoneJob.Node> _allNodes = new List<VRMSpringBoneJob.Node>();
+        readonly List<VRMSpringBoneColliderGroupJob> _allColliderGroups = new List<VRMSpringBoneColliderGroupJob>();
 #if UNITY_EDITOR && ENABLE_DEBUG
         readonly List<VRMSpringBone> _currentAllBones = new List<VRMSpringBone>();
 #endif
@@ -125,7 +125,7 @@
         void ExecuteJobs()
         {
             if (this._springBoneJobData.Length <= 0) return;
-            
+
             if (!this._colliderHashMap.IsCreated)
             {
                 // コライダーの初期化
@@ -145,7 +145,6 @@
                     this._colliderHashMapLength, Allocator.Persistent);
             }
 
-            
             var updateColliderHashJobHandle = new UpdateColliderHashJob
             {
                 GroupParams = this._colliderGroupJobData.GroupParams,
@@ -171,7 +170,7 @@
 
             JobHandle.ScheduleBatchedJobs();
         }
-        
+
         void CreateBuffer(CentralizedBuffer[] initBuffers = null)
         {
             if (initBuffers != null)

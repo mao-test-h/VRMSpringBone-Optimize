@@ -22,10 +22,10 @@
 
     public unsafe struct ColliderGroupBlittableFieldsPtr : IComponentData
     {
-        public VRMSpringBoneColliderGroup.BlittableFields* Value;
+        public VRMSpringBoneColliderGroupEntity.BlittableFields* Value;
         public int Length;
 
-        public VRMSpringBoneColliderGroup.BlittableFields GetBlittableFields(int index)
+        public VRMSpringBoneColliderGroupEntity.BlittableFields GetBlittableFields(int index)
         {
             Assert.IsTrue((index >= 0) && (index < this.Length));
             return *(this.Value + index);
@@ -40,8 +40,8 @@
 
     public unsafe struct SpringBoneBlittableFieldsPtr : IComponentData
     {
-        public VRMSpringBone.BlittableFields* Value;
-        public VRMSpringBone.BlittableFields GetValue => *this.Value;
+        public VRMSpringBoneEntity.BlittableFields* Value;
+        public VRMSpringBoneEntity.BlittableFields GetValue => *this.Value;
     }
 
     // 親のEntity

@@ -26,7 +26,7 @@
 
         #region // Private Fields
 
-        readonly List<VRMSpringBone> _springBones = new List<VRMSpringBone>();
+        readonly List<VRMSpringBoneEntity> _springBones = new List<VRMSpringBoneEntity>();
 
         EntityManager _entityManager = null;
         Entity _sphereColliderPrefab;
@@ -57,7 +57,7 @@
 
             // 初期登録
             if (!this._isAutoGetBuffers) return;
-            this.AddSpringBones(FindObjectsOfType<VRMSpringBone>());
+            this.AddSpringBones(FindObjectsOfType<VRMSpringBoneEntity>());
         }
 
         /// <summary>
@@ -83,7 +83,7 @@
 
         #region // Public Methods
 
-        public void AddSpringBone(VRMSpringBone springBone)
+        public void AddSpringBone(VRMSpringBoneEntity springBone)
         {
             if (springBone.RootBones == null
                 || springBone.RootBones.Count <= 0
@@ -98,7 +98,7 @@
             this._springBones.Add(springBone);
         }
 
-        public void AddSpringBones(VRMSpringBone[] springBones)
+        public void AddSpringBones(VRMSpringBoneEntity[] springBones)
         {
             foreach (var springBone in springBones)
             {
@@ -116,7 +116,7 @@
             }
         }
 
-        public void RemoveSpringBone(VRMSpringBone springBone)
+        public void RemoveSpringBone(VRMSpringBoneEntity springBone)
         {
             if (!this._springBones.Contains(springBone))
             {
@@ -134,7 +134,7 @@
 
         #region // Private Methods
 
-        unsafe void CreateSphereColliderEntities(VRMSpringBone springBone)
+        unsafe void CreateSphereColliderEntities(VRMSpringBoneEntity springBone)
         {
             var groups = springBone.ColliderGroups;
             if (groups == null || groups.Length <= 0)
@@ -162,7 +162,7 @@
             springBone.SphereColliderEntities = createSphereColliderEntities;
         }
 
-        void CreateSpringBoneEntities(VRMSpringBone springBone)
+        void CreateSpringBoneEntities(VRMSpringBoneEntity springBone)
         {
             foreach (var node in springBone.Nodes)
             {
@@ -170,7 +170,7 @@
             }
         }
 
-        void DestroySpringBoneEntities(VRMSpringBone springBone)
+        void DestroySpringBoneEntities(VRMSpringBoneEntity springBone)
         {
             foreach (var colliderEntity in springBone.SphereColliderEntities)
             {

@@ -6,12 +6,12 @@
     using UnityEditor;
     using VRMSpringBone = VRM.VRMSpringBone;
 #if ENABLE_JOB_SPRING_BONE
-    using JobVRMSpringBone = VRM.Optimize.Jobs.VRMSpringBone;
-    using JobVRMSpringBoneColliderGroup = VRM.Optimize.Jobs.VRMSpringBoneColliderGroup;
+    using JobVRMSpringBone = VRM.Optimize.Jobs.VRMSpringBoneJob;
+    using JobVRMSpringBoneColliderGroup = VRM.Optimize.Jobs.VRMSpringBoneColliderGroupJob;
 #endif
 #if ENABLE_ECS_SPRING_BONE
-    using EntitiesVRMSpringBone = VRM.Optimize.Entities.VRMSpringBone;
-    using EntitiesVRMSpringBoneColliderGroup = VRM.Optimize.Entities.VRMSpringBoneColliderGroup;
+    using EntitiesVRMSpringBone = VRM.Optimize.Entities.VRMSpringBoneEntity;
+    using EntitiesVRMSpringBoneColliderGroup = VRM.Optimize.Entities.VRMSpringBoneColliderGroupEntity;
 #endif
 
     // MEMO: Assembly-CSharp-Editor.dllの配下に置いてある理由について。

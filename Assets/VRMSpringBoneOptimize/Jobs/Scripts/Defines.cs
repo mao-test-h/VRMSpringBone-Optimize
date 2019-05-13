@@ -27,10 +27,10 @@
         public struct GroupParam
         {
             public int InstanceID;
-            public VRMSpringBoneColliderGroup.BlittableFields* BlittableFieldsPtr;
+            public VRMSpringBoneColliderGroupJob.BlittableFields* BlittableFieldsPtr;
             public int SphereCollidersLength;
 
-            public VRMSpringBoneColliderGroup.BlittableFields GetBlittableFields(int index)
+            public VRMSpringBoneColliderGroupJob.BlittableFields GetBlittableFields(int index)
             {
                 Assert.IsTrue((index >= 0) && (index < this.SphereCollidersLength));
                 return *(this.BlittableFieldsPtr + index);
@@ -42,7 +42,7 @@
 
         public bool IsCreated => TransformAccessArray.isCreated;
 
-        public ColliderGroupJobData(IReadOnlyList<VRMSpringBoneColliderGroup> groups)
+        public ColliderGroupJobData(IReadOnlyList<VRMSpringBoneColliderGroupJob> groups)
         {
             var length = groups.Count;
             this.TransformAccessArray = new TransformAccessArray(length);
@@ -61,7 +61,7 @@
                 {
                     InstanceID = group.GetInstanceID(),
                     BlittableFieldsPtr =
-                        (VRMSpringBoneColliderGroup.BlittableFields*) @group.BlittableFieldsArray.GetUnsafePtr(),
+                        (VRMSpringBoneColliderGroupJob.BlittableFields*) @group.BlittableFieldsArray.GetUnsafePtr(),
                     SphereCollidersLength = group.BlittableFieldsArray.Length,
                 };
             }
@@ -87,7 +87,7 @@
             public float Length;
             public quaternion LocalRotation;
             public float3 BoneAxis;
-            public VRMSpringBone.BlittableFields* BlittableFieldsPtr;
+            public VRMSpringBoneJob.BlittableFields* BlittableFieldsPtr;
             public float4x4* CenterMatrixPtr;
         }
 
@@ -108,7 +108,7 @@
         public bool IsCreated => TransformAccessArray.isCreated;
         public int Length { get; }
 
-        public SpringBoneJobData(IReadOnlyList<VRMSpringBone.Node> nodes)
+        public SpringBoneJobData(IReadOnlyList<VRMSpringBoneJob.Node> nodes)
         {
             var length = nodes.Count;
             this.Length = length;

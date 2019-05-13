@@ -11,11 +11,11 @@
         #region // Properties
 
         // Components References
-        public VRMSpringBone[] SpringBones { get; private set; }
-        public List<VRMSpringBone> UpdateCenterBones { get; private set; }
-        public List<VRMSpringBoneColliderGroup> ColliderGroups { get; } = new List<VRMSpringBoneColliderGroup>();
+        public VRMSpringBoneJob[] SpringBones { get; private set; }
+        public List<VRMSpringBoneJob> UpdateCenterBones { get; private set; }
+        public List<VRMSpringBoneColliderGroupJob> ColliderGroups { get; } = new List<VRMSpringBoneColliderGroupJob>();
 
-        public List<VRMSpringBone.Node> AllNodes { get; } = new List<VRMSpringBone.Node>();
+        public List<VRMSpringBoneJob.Node> AllNodes { get; } = new List<VRMSpringBoneJob.Node>();
         public int ColliderHashMapLength { get; private set; }
 
         #endregion // Properties
@@ -28,7 +28,7 @@
         public void Initialize()
         {
             // VRMSpringBoneの初期化
-            this.SpringBones = this.GetComponents<VRMSpringBone>();
+            this.SpringBones = this.GetComponents<VRMSpringBoneJob>();
             foreach (var springBone in this.SpringBones)
             {
                 springBone.Initialize();
@@ -39,7 +39,7 @@
                 {
                     if (this.UpdateCenterBones == null)
                     {
-                        this.UpdateCenterBones = new List<VRMSpringBone>();
+                        this.UpdateCenterBones = new List<VRMSpringBoneJob>();
                     }
 
                     this.UpdateCenterBones.Add(springBone);
