@@ -12,7 +12,7 @@
     {
         // ------------------------------
 
-        #region // Private Fields(Editable) 
+        #region // Private Fields(Editable)
 
         [Header("【Settings】")] [SerializeField]
         bool _isAutoGetBuffers = false;
@@ -24,7 +24,7 @@
         [SerializeField] Color _originalColliderColor = Color.green;
 #endif
 
-        #endregion // Private Fields(Editable) 
+        #endregion // Private Fields(Editable)
 
         // ------------------------------
 
@@ -125,16 +125,25 @@
         void ExecuteJobs()
         {
             if (this._springBoneJobData.Length <= 0) return;
-            
-            if (this._colliderHashMap.IsCreated)
+
+            if (!this._colliderHashMap.IsCreated)
             {
-                this._colliderHashMap.Dispose();
-                
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._colliderHashMapLength, Allocator.Persistent);
+            }
+            else
+            {
+                this._colliderHashMap.Clear();
             }
 
-            // コライダーの初期化
-            this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
-                this._colliderHashMapLength, Allocator.TempJob);
+            if (this._colliderHashMap.Capacity != this._colliderHashMapLength)
+            {
+                this._colliderHashMap.Dispose();
+                // コライダーの初期化
+                this._colliderHashMap = new NativeMultiHashMap<int, SphereCollider>(
+                    this._colliderHashMapLength, Allocator.Persistent);
+            }
 
             var updateColliderHashJobHandle = new UpdateColliderHashJob
             {
@@ -161,7 +170,7 @@
 
             JobHandle.ScheduleBatchedJobs();
         }
-        
+
         void CreateBuffer(CentralizedBuffer[] initBuffers = null)
         {
             if (initBuffers != null)
