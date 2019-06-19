@@ -51,7 +51,7 @@
         readonly List<VRMSpringBoneJob.Node> _allNodes = new List<VRMSpringBoneJob.Node>();
         readonly List<VRMSpringBoneColliderGroupJob> _allColliderGroups = new List<VRMSpringBoneColliderGroupJob>();
 #if UNITY_EDITOR && ENABLE_DEBUG
-        readonly List<VRMSpringBone> _currentAllBones = new List<VRMSpringBone>();
+        readonly List<VRMSpringBoneJob> _currentAllBones = new List<VRMSpringBoneJob>();
 #endif
 
         #endregion // Private Fields
