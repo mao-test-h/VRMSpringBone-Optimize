@@ -235,6 +235,7 @@ PlayerSettings:
   tvOSManualSigningProvisioningProfileType: 0
   appleEnableAutomaticSigning: 0
   iOSRequireARKit: 0
+  iOSAutomaticallyDetectAndAddCapabilities: 1
   appleEnableProMotion: 0
   clonedFromGUID: c0afd0d1d80e3634a9dac47e8a0426ea
   templatePackageId: com.unity.template.3d@1.0.4
@@ -527,7 +528,7 @@ PlayerSettings:
   webGLLinkerTarget: 1
   webGLThreadsSupport: 0
   scriptingDefineSymbols:
-    1: ENABLE_DEBUG;ENABLE_JOB_SPRING_BONE;ENABLE_ECS_SPRING_BONE
+    1: ENABLE_DEBUG;ENABLE_JOB_SPRING_BONE
     7: 
   platformArchitecture: {}
   scriptingBackend:

@@ -4,7 +4,6 @@
         "VRMSpringBoneOptimize",
         "Unity.Collections",
         "Unity.Burst",
-        "Unity.Jobs",
         "Unity.Mathematics"
     ],
     "optionalUnityReferences": [],
