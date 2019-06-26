@@ -40,7 +40,7 @@
             var allNodes = new List<VRMSpringBoneJob.Node>();
 
             // VRMSpringBoneの初期化
-            this.SpringBones = this.GetComponents<VRMSpringBoneJob>();
+            this.SpringBones = this.GetComponentsInChildren<VRMSpringBoneJob>(includeInactive:true);
             foreach (var springBone in this.SpringBones)
             {
                 springBone.Initialize();
@@ -59,19 +59,22 @@
 
                 // SpringBoneに登録されている全コライダーの取得
                 // →同じコライダーが参照されている時があるので重複は取り除く
-                foreach (var collider in springBone.ColliderGroups)
+                if (springBone.ColliderGroups != null)
                 {
-                    if (collider.Colliders == null || collider.Colliders.Length <= 0)
+                    foreach (var collider in springBone.ColliderGroups)
                     {
-                        continue;
-                    }
+                        if (collider.Colliders == null || collider.Colliders.Length <= 0)
+                        {
+                            continue;
+                        }
 
-                    if (this.ColliderGroups.Contains(collider))
-                    {
-                        continue;
-                    }
+                        if (this.ColliderGroups.Contains(collider))
+                        {
+                            continue;
+                        }
 
-                    this.ColliderGroups.Add(collider);
+                        this.ColliderGroups.Add(collider);
+                    }
                 }
             }
 

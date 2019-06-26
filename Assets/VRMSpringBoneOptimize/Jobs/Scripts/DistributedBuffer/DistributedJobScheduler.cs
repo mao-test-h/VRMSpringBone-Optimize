@@ -8,6 +8,10 @@
     using Unity.Mathematics;
     using IDisposable = System.IDisposable;
 
+#if UNITY_5_5_OR_NEWER
+    // DefaultExecutionOrder(11000) means calclate springbone after FinaiIK( VRIK )
+    [DefaultExecutionOrder(11000)]
+#endif
     public sealed class DistributedJobScheduler : MonoBehaviour, IDisposable
     {
         // ------------------------------

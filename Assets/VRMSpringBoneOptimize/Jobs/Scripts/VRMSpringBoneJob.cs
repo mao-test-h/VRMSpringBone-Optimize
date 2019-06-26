@@ -131,7 +131,6 @@
         {
             this._blittableFieldsPtr =
                 (BlittableFields*) UnsafeUtilityHelper.Malloc<BlittableFields>(Allocator.Persistent);
-            this.CopyBlittableFields();
 
             if (this.m_center != null)
             {
@@ -147,6 +146,8 @@
                     this._colliderGroupInstanceIDs[i] = this.ColliderGroups[i].GetInstanceID();
                 }
             }
+
+            this.CopyBlittableFields();
 
             foreach (var go in RootBones)
             {

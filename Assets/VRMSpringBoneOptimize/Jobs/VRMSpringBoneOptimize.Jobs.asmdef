@@ -1,7 +1,6 @@
 {
     "name": "JobVRMSpringBone",
     "references": [
-        "VRMSpringBoneOptimize",
         "Unity.Collections",
         "Unity.Burst",
         "Unity.Mathematics"
