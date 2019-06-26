@@ -6,6 +6,7 @@
     using Unity.Mathematics;
     using IDisposable = System.IDisposable;
 
+    [DisallowMultipleComponent]
     public sealed class DistributedBuffer : MonoBehaviour, IDisposable
     {
         // ------------------------------

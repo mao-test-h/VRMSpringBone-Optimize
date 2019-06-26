@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.Jobs;
+    using UnityEngine.Assertions;
     using Unity.Jobs;
     using Unity.Collections;
     using Unity.Mathematics;
@@ -12,6 +13,7 @@
     // DefaultExecutionOrder(11000) means calclate springbone after FinaiIK( VRIK )
     [DefaultExecutionOrder(11000)]
 #endif
+    [DisallowMultipleComponent]
     public sealed class CentralizedJobScheduler : MonoBehaviour, IDisposable
     {
         // ------------------------------
@@ -103,6 +105,25 @@
         // ----------------------------------------------------
 
         #region // Public Methods
+
+        public void AddBuffer(GameObject obj)
+        {
+            var buffer = obj.GetComponent<CentralizedBuffer>();
+            if (buffer == null)
+            {
+                buffer = obj.AddComponent<CentralizedBuffer>();
+            }
+
+            AddBuffer(buffer);
+        }
+
+        public void RemoveBuffer(GameObject obj)
+        {
+            var buffer = obj.GetComponent<CentralizedBuffer>();
+            Assert.IsTrue(buffer != null);
+
+            RemoveBuffer(buffer);
+        }
 
         public void AddBuffer(CentralizedBuffer buffer)
         {

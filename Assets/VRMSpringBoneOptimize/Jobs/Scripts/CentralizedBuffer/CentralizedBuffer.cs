@@ -4,6 +4,7 @@
     using UnityEngine;
     using IDisposable = System.IDisposable;
 
+    [DisallowMultipleComponent]
     public sealed class CentralizedBuffer : MonoBehaviour, IDisposable
     {
         // ------------------------------
