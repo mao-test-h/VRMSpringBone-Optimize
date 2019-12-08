@@ -1,7 +1,8 @@
 {
     "name": "UniGLTF.Editor",
     "references": [
-        "VRM"
+        "VRM",
+        "ShaderProperty.Runtime"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [
