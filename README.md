@@ -13,21 +13,18 @@
 # 各種バージョン
 
 - Unity
-    - 2018.3.14f1
+    - 2018.4.13f1
 - UniVRM
-    - UniVRM-0.50_9db7.unitypackage
-    - UniVRM.asmdef-0.50_9db7.unitypackage
-
+    - UniVRM-0.53.0_6b07
+    - UniVRM.asmdef-0.53.0_6b07
 
 ## 依存パッケージ
 
 各モジュールはPackageManagerから取得できる幾つかのパッケージに依存しているので、利用する際には事前に入れておくこと。
 
 - **VRMSpringBoneOptimize-Jobs**
-    - com.unity.burst: 1.0.4
-    - com.unity.mathematics: 1.0.1
+    - com.unity.burst: 1.1.2
     - com.unity.collections: 0.0.9-preview.12
-
 
 
 ------------------------------------------------------------------------------------------------
