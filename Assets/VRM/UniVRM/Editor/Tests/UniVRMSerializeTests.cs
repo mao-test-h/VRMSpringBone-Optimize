@@ -219,10 +219,32 @@ namespace VRM
         [Test]
         public void MaterialTest()
         {
-            var model = new glTF_VRM_Material();
+            var model = new glTF_VRM_Material
+            {
+                floatProperties = new Dictionary<string, float>
+                {
+                    {"float", 1.0f}
+                },
+                vectorProperties = new Dictionary<string, float[]>
+                {
+                    {"vector", new float[]{0, 1, 2, 3 }}
+                },
+                textureProperties = new Dictionary<string, int>
+                {
+                    {"texture", 0}
+                },
+                keywordMap = new Dictionary<string, bool>
+                {
+                    {"keyword", true}
+                },
+                tagMap = new Dictionary<string, string>
+                {
+                    {"tag", "map"}
+                },
+            };
 
             var json = model.ToJson();
-            Assert.AreEqual(@"{""renderQueue"":-1,""floatProperties"":{},""vectorProperties"":{},""textureProperties"":{},""keywordMap"":{},""tagMap"":{}}", json);
+            Assert.AreEqual(@"{""renderQueue"":-1,""floatProperties"":{""float"":1},""vectorProperties"":{""vector"":[0,1,2,3]},""textureProperties"":{""texture"":0},""keywordMap"":{""keyword"":true},""tagMap"":{""tag"":""map""}}", json);
             Debug.Log(json);
 
             var c = new JsonSchemaValidationContext("")
@@ -231,7 +253,12 @@ namespace VRM
             };
             var json2 = JsonSchema.FromType<glTF_VRM_Material>().Serialize(model, c);
             // NOTE: New serializer outputs values which will not be used...
-            Assert.AreEqual(json,json2);
+            Assert.AreEqual(json, json2);
+
+            // deserialize
+            var deserialized = default(glTF_VRM_Material);
+            json.ParseAsJson().Deserialize(ref deserialized);
+            Assert.AreEqual(1, deserialized.floatProperties.Count);
         }
 
         [Test]
@@ -263,7 +290,13 @@ namespace VRM
         public void MetaTestError()
         {
             {
-                var model = new glTF_VRM_Meta();
+                var model = new glTF_VRM_Meta()
+                {
+                    allowedUserName = null,
+                    violentUssageName = null,
+                    sexualUssageName = null,
+                    commercialUssageName = null,
+                };
 
                 var c = new JsonSchemaValidationContext("")
                 {
@@ -283,6 +316,7 @@ namespace VRM
                     sexualUssageName = "Disallow",
                     commercialUssageName = "Disallow",
                     //licenseName = "CC0",
+                    licenseName = null,
                 };
 
                 var c = new JsonSchemaValidationContext("")
@@ -319,6 +353,7 @@ namespace VRM
                 var model = new glTF_VRM_Meta()
                 {
                     // allowedUserName = "OnlyAuthor",
+                    allowedUserName = null,
                     violentUssageName = "Disallow",
                     sexualUssageName = "Disallow",
                     commercialUssageName = "Disallow",
@@ -360,6 +395,7 @@ namespace VRM
                 {
                     allowedUserName = "OnlyAuthor",
                     //violentUssageName = "Disallow",
+                    violentUssageName = null,
                     sexualUssageName = "Disallow",
                     commercialUssageName = "Disallow",
                     licenseName = "CC0",
@@ -401,6 +437,7 @@ namespace VRM
                     allowedUserName = "OnlyAuthor",
                     violentUssageName = "Disallow",
                     //sexualUssageName = "Disallow",
+                    sexualUssageName = null,
                     commercialUssageName = "Disallow",
                     licenseName = "CC0",
                 };
@@ -442,6 +479,7 @@ namespace VRM
                     violentUssageName = "Disallow",
                     sexualUssageName = "Disallow",
                     //commercialUssageName = "Disallow",
+                    commercialUssageName = null,
                     licenseName = "CC0",
                 };
 
@@ -635,7 +673,9 @@ namespace VRM
                 EnableDiagnosisForNotRequiredFields = true,
             };
             var json2 = JsonSchema.FromType<glTF_VRM_extensions>().Serialize(model, c);
-            Assert.AreEqual(@"{""exporterVersion"":""UniVRM-0.50"",""specVersion"":""0.0""}",json2);
+            var expected =
+                String.Format(@"{{""exporterVersion"":""{0}"",""specVersion"":""0.0""}}", VRMVersion.VRM_VERSION);
+            Assert.AreEqual(expected,json2);
         }
 
         // TODO: Move to another suitable location
